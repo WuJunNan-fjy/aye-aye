@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.aye</groupId>
+    <artifactId>aye-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>Aye</name>
+    <description>Aye — 本地随 Electron 运行的 AI 终端与服务器管理工具（Java 后端）</description>
+
+    <modules>
+        <module>packages/aye-ai-core</module>
+        <module>apps/aye-server</module>
+    </modules>
+
+    <properties>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- AI 核心唯一第三方库：Jackson（JSON），不是 AI 框架 -->
+        <jackson.version>2.18.2</jackson.version>
+        <!-- 后端应用层 -->
+        <spring-boot.version>3.4.5</spring-boot.version>
+        <sqlite-jdbc.version>3.46.1.0</sqlite-jdbc.version>
+        <jsch.version>0.2.20</jsch.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Jackson：termind-ai-core 用，显式定版避免与 Spring Boot BOM 冲突 -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <!-- Spring Boot BOM：只管 apps/aye-server 的依赖版本 -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- SQLite JDBC（嵌入式单文件，桌面单机场景） -->
+            <dependency>
+                <groupId>org.xerial</groupId>
+                <artifactId>sqlite-jdbc</artifactId>
+                <version>${sqlite-jdbc.version}</version>
+            </dependency>
+
+            <!-- SSH 客户端（mwiede 维护的活跃 JSch fork，原版 com.jcraft 已停更） -->
+            <dependency>
+                <groupId>com.github.mwiede</groupId>
+                <artifactId>jsch</artifactId>
+                <version>${jsch.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                    <configuration>
+                        <release>17</release>
+                        <encoding>UTF-8</encoding>
+                        <!-- Spring MVC 需要参数名做 @PathVariable 反射绑定（不用 spring-boot-starter-parent 时须显式开启） -->
+                        <parameters>true</parameters>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

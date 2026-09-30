@@ -1,0 +1,228 @@
+/* ════════════════════════════════════════════════════════════════════
+ * fx-icons.css · Aye 会动图标库（运行态循环）
+ *
+ * 约定：
+ *  - .tm-fx                动效图标外壳（inline-flex，尺寸由宿主决定）
+ *  - .tm-ico-<name>        运行态命名空间；不带该 class 的同 SVG 即静态终态
+ *  - .i-*                  参与运动的笔画部件；外框/外壳保持静止
+ *  - 动效只动 transform / opacity；全部选择器封闭，不写裸 svg/path 全局规则
+ *  - 必须在 prefers-reduced-motion 下呈现可读静态态（见文件末）
+ * ════════════════════════════════════════════════════════════════════ */
+
+.tm-fx {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tm-fx > svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* 宿主尺寸：思考行 14px，工具卡 13px（文字均为 13px，16px 图标盒内居中）。 */
+.thk-icon.tm-fx { width: 14px; height: 14px; }
+.tc-leading .tm-fx { width: 13px; height: 13px; }
+
+/* ── 思考灯泡 · F 双闪呼吸（2s 循环）──────────────────────────────────
+ * 概念：灯丝静止，玻璃外泡与 Y 形灯丝明暗两连闪（10%、34% 两个峰）。
+ * 图形取自 lucide lightbulb（ISC），灯丝为原创三笔拆分。 */
+.tm-ico-think .i-glass { animation: fx-think-beat-g 2s ease-in-out infinite both; }
+.tm-ico-think .i-wire  { animation: fx-think-beat-w 2s ease-in-out infinite both; }
+
+@keyframes fx-think-beat-g {
+  0%, 100% { opacity: .82; }
+  10%      { opacity: 1; }
+  22%      { opacity: .88; }
+  34%      { opacity: 1; }
+  72%      { opacity: .82; }
+}
+
+@keyframes fx-think-beat-w {
+  0%, 100% { opacity: .45; }
+  10%      { opacity: 1; }
+  22%      { opacity: .5; }
+  34%      { opacity: 1; }
+  72%      { opacity: .45; }
+}
+
+/* ── 执行命令终端 · 现版扭头眨眼（2.4s 循环）──────────────────────────
+ * 概念：方框静止，> 提示符两组扭头摆动（9/28% 一组、67/86% 一组），
+ *       _ 光标中段眨眼（48–84% 暗淡）。部件 path 与 done 的 lucide
+ *       square-terminal 逐字相同，running→done 同形零跳变。 */
+.tm-ico-py .i-chev {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: fx-py-chev 2.4s ease-in-out infinite;
+}
+.tm-ico-py .i-cur { animation: fx-py-cur 2.4s ease-in-out infinite; }
+
+@keyframes fx-py-chev {
+  0%, 100% { transform: none; }
+  9%       { transform: translateX(.8px) rotate(10deg); }
+  18%      { transform: none; }
+  28%      { transform: translateX(-.7px) rotate(-8deg); }
+  38%, 58% { transform: none; }
+  67%      { transform: translateX(.8px) rotate(10deg); }
+  76%      { transform: none; }
+  86%      { transform: translateX(-.7px) rotate(-8deg); }
+}
+
+@keyframes fx-py-cur {
+  0%, 42%   { opacity: 1; }
+  48%, 84%  { opacity: .12; }
+  91%, 100% { opacity: 1; }
+}
+
+/* ── prefers-reduced-motion：静态可读终态 ──────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .tm-ico-think [class*="i-"],
+  .tm-ico-py [class*="i-"] {
+    animation: none !important;
+  }
+  /* 灯泡：完整常亮；终端：>_ 提示符自然态（与 done 同形）。 */
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 侧栏 hover 一次性套件（.tm-nav-N · 播一次）
+ * 结构：<span class="tm-nav tm-nav-N"><svg>…部件带 nv-* 类…</svg></span>
+ * 触发：FxNavIcon 在 pointerenter/click 加 .play，animationend 防抖移除。
+ * 尺寸：外壳宽高由宿主类决定（如 .sb-new-icon 18px），svg 填满外壳。
+ * ════════════════════════════════════════════════════════════════════ */
+.tm-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tm-nav > svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.tm-nav [class*="nv-"] {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+/* ── nav-1 新会话 · 气泡加号（0.42s）──────────────────────────────────
+ * 概念：加号绕中心旋转 90° 带回弹，对话气泡轻喘。 */
+@keyframes fx-nav-plus {
+  0%   { transform: rotate(0deg) scale(1); }
+  55%  { transform: rotate(102deg) scale(1.2); }
+  76%  { transform: rotate(84deg) scale(1.06); }
+  100% { transform: rotate(90deg) scale(1); }
+}
+@keyframes fx-nav-bubble {
+  0%, 100% { transform: scale(1); }
+  40%      { transform: scale(1.06); }
+  70%      { transform: scale(.98); }
+}
+.tm-nav-1 .nv-x {
+  transform-box: view-box;
+  transform-origin: 12px 12px;
+}
+.tm-nav-1.play .nv-x { animation: fx-nav-plus .42s ease-in-out 1 both; }
+.tm-nav-1.play .nv-bubble { animation: fx-nav-bubble .42s ease-in-out 1 both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tm-nav [class*="nv-"] { animation: none !important; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 侧栏收起/展开 · PN-B 弹入（hover 一次性，.play 保持到移出）
+ * 静止只有方框+竖条（lucide panel-left 原样）；hover 后箭头在竖条旁
+ * 从小而淡弹簧弹入并停留，移出时随 opacity 过渡隐去。
+ * pn-close = 收起（箭头 < 指向竖条）；pn-open = 展开（箭头 >）。
+ * ════════════════════════════════════════════════════════════════════ */
+.pn-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pn-ico > svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.pn-ico .pn-chv {
+  opacity: 0;
+  transition: opacity .12s ease;
+  transform-box: view-box;
+}
+.pn-ico.pn-close .pn-chv { transform-origin: 14.5px 12px; }
+.pn-ico.pn-open  .pn-chv { transform-origin: 15.5px 12px; }
+/* 右面板镜像版（终端/文件工作台）：竖条在右，箭头方向互换，
+   path/中心与 lucide panel-right-close/open 逐个对齐 */
+.pn-ico.pn-close-r .pn-chv { transform-origin: 9.5px 12px; }
+.pn-ico.pn-open-r  .pn-chv { transform-origin: 8.5px 12px; }
+.pn-ico.play .pn-chv { animation: fx-pn-pop .32s cubic-bezier(.34, 1.5, .64, 1) 1 both; }
+
+@keyframes fx-pn-pop {
+  0%   { opacity: 0; transform: scale(.5); }
+  70%  { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pn-ico .pn-chv {
+    animation: none !important;
+    opacity: 1;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 部署火箭 · C 推力震动（定稿）
+ * 图形：DeployRocketIcon（lucide rocket 拆 rc-body 三笔 + rc-flame）。
+ * 两态：
+ *  - 未部署：hover 播放一次推力脉冲（机身 1.05s 一个完整后坐↔前冲，
+ *    火焰同周期内快闪 3 下）；
+ *  - .is-deploying（任一部署阶段 running）：同一节奏无限循环。
+ * 分层：.inp-deploy > svg 上的 inp-deploy-pop 只写 svg 自身 transform，
+ * 本动效只写内部 g/path，两个动画源不抢同一元素的 transform。
+ * 宿主：输入条 .inp-deploy 火箭钮、部署进度卡 .dp-lead 头部火箭。
+ * ════════════════════════════════════════════════════════════════════ */
+.inp-deploy [class*="rc-"],
+.dp-lead [class*="rc-"] {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+.inp-deploy .rc-flame,
+.dp-lead .rc-flame {
+  transform-origin: 100% 0%; /* 火焰根部：与左尾翼连接处，沿排气轴缩放 */
+}
+
+/* 未部署 · hover 一次性：1.02s≈机身 1.05s，火焰脉冲与机身同时收尾。 */
+.inp-deploy:not(.is-deploying):hover .rc-all {
+  animation: rc-thrust-kf 1.05s ease-in-out 1 both;
+}
+.inp-deploy:not(.is-deploying):hover .rc-flame {
+  animation: rc-flick-kf .34s ease-in-out 3 both;
+}
+
+/* 部署进行中 · 无限循环（按钮与进度卡头部共用）。 */
+.inp-deploy.is-deploying .rc-all,
+.dp-lead.is-deploying .rc-all {
+  animation: rc-thrust-kf 1.05s ease-in-out infinite both;
+}
+.inp-deploy.is-deploying .rc-flame,
+.dp-lead.is-deploying .rc-flame {
+  animation: rc-flick-kf .34s ease-in-out infinite both;
+}
+
+@keyframes rc-thrust-kf {
+  0%, 100% { transform: translate(0, 0); }
+  25%      { transform: translate(-.9px, .9px); }
+  55%      { transform: translate(1.3px, -1.3px); }
+}
+@keyframes rc-flick-kf {
+  0%, 100% { opacity: .75; transform: scale(.9); }
+  50%      { opacity: 1;   transform: scale(1.22); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inp-deploy [class*="rc-"],
+  .dp-lead [class*="rc-"] {
+    animation: none !important;
+  }
+}

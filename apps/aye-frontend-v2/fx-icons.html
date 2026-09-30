@@ -1,0 +1,1737 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>tm-fx · 会动的图标库（审查台）</title>
+<style>
+/* ══════════════ 审查台基础样式（非库本体，仅还原 Aye 墨色环境） ══════════════ */
+:root {
+  --bg: #0f1115;
+  --card: #15181d;
+  --card-border: #262a31;
+  --txt: #f2f3f5;
+  --txt-2: #9aa0ab;
+  --txt-3: #6b7280;
+  --hover-bg: #22252b;
+  --accent: #e8e9eb;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--txt); }
+body {
+  font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  padding: 40px 32px 64px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1060px; margin: 0 auto; }
+
+header h1 { font-size: 20px; font-weight: 650; letter-spacing: .2px; }
+header h1 .prefix { color: var(--txt-3); font-weight: 500; margin-right: 8px; }
+header p { margin-top: 8px; font-size: 13px; color: var(--txt-2); line-height: 1.7; }
+header .tips { margin-top: 6px; font-size: 12px; color: var(--txt-3); }
+header .tips b { color: var(--txt-2); font-weight: 600; }
+
+.toolbar { display: flex; gap: 8px; margin: 18px 0 22px; }
+.tbtn {
+  font-size: 12px; color: var(--txt-2); background: transparent;
+  border: 1px solid var(--card-border); border-radius: 6px;
+  padding: 5px 12px; cursor: pointer; transition: all .15s;
+}
+.tbtn:hover { color: var(--txt); border-color: #3a3f48; }
+.tbtn.on { color: #0f1115; background: var(--accent); border-color: var(--accent); }
+
+/* ── 动效卡片 ── */
+.card {
+  display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 10px; padding: 16px 20px; margin-bottom: 10px;
+}
+.card-info { min-width: 0; }
+.card-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.num {
+  font-size: 11px; color: var(--txt-3); font-variant-numeric: tabular-nums;
+  border: 1px solid var(--card-border); border-radius: 4px; padding: 1px 6px;
+}
+.name { font-size: 14px; font-weight: 600; }
+.chip {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px; color: #8ec8ff; background: rgba(110,170,255,.08);
+  border: 1px solid rgba(110,170,255,.18); border-radius: 5px;
+  padding: 2px 8px; cursor: pointer; user-select: none; transition: all .15s;
+}
+.chip:hover { background: rgba(110,170,255,.16); }
+.chip.copied { color: #7fe0a8; border-color: rgba(110,220,150,.3); background: rgba(110,220,150,.08); }
+.params { font-size: 11.5px; color: var(--txt-3); font-variant-numeric: tabular-nums; }
+.desc { margin-top: 6px; font-size: 12.5px; color: var(--txt-2); line-height: 1.6; }
+.rec { margin-top: 5px; font-size: 11.5px; color: var(--txt-3); }
+.rec code {
+  font-family: ui-monospace, Consolas, monospace; color: var(--txt-2);
+  background: #1d2026; border-radius: 3px; padding: 0 5px; margin: 0 2px;
+}
+.stage { display: flex; gap: 6px; }
+
+/* ── 演示按钮：复刻项目 .st-mini-btn 的墨色质感（审查尺寸 34px / 实际尺寸 26px） ── */
+.demo-btn {
+  width: 34px; height: 34px; border-radius: 7px;
+  display: grid; place-items: center;
+  color: var(--txt-2); background: transparent; border: none; cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+  flex: none;
+}
+.demo-btn:hover { background: var(--hover-bg); color: var(--txt); }
+.demo-btn svg { width: 17px; height: 17px; }
+body.size-real .demo-btn { width: 26px; height: 26px; border-radius: 5px; }
+body.size-real .demo-btn svg { width: 13px; height: 13px; }
+
+footer { margin-top: 26px; font-size: 12px; color: var(--txt-3); line-height: 1.9; }
+footer code {
+  font-family: ui-monospace, Consolas, monospace; color: var(--txt-2);
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 4px; padding: 1px 6px;
+}
+.danger-note { color: #d8908a; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   tm-fx 库本体 A 区（评审通过后原样进入 src/styles/fx-icons.css）
+   hover 一次性微动效：类挂按钮容器；只播一次；只动 transform/opacity；
+   fill-mode: both 终帧静止，移出复位；reduced-motion 全局降级。
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* 01 wobble · 弹簧摇摆：上跳 + 顺逆摆头 + 过冲回弹 */
+@keyframes tm-fx-wobble-kf {
+  0%   { transform: translateY(0) rotate(0deg) scale(1); }
+  30%  { transform: translateY(-10%) rotate(10deg) scale(1.1); }
+  55%  { transform: translateY(0) rotate(-8deg) scale(1.05); }
+  78%  { transform: translateY(0) rotate(3deg) scale(1.02); }
+  100% { transform: translateY(0) rotate(0deg) scale(1); }
+}
+.tm-fx-wobble:hover > svg { animation: tm-fx-wobble-kf .46s cubic-bezier(.34,1.56,.64,1) 1 both; }
+
+/* 02 pop · Q 弹：压扁蓄力 → 放大回弹 */
+@keyframes tm-fx-pop-kf {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(.78); }
+  55%  { transform: scale(1.2); }
+  78%  { transform: scale(.95); }
+  100% { transform: scale(1); }
+}
+.tm-fx-pop:hover > svg { animation: tm-fx-pop-kf .4s cubic-bezier(.34,1.56,.64,1) 1 both; }
+
+/* 03 turn · 转一圈（刷新/设置；旋转中的 spinner 不接管） */
+@keyframes tm-fx-turn-kf {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.tm-fx-turn:hover > svg:not(.dsh-spin) { animation: tm-fx-turn-kf .6s cubic-bezier(.22,.61,.36,1) 1 both; }
+
+/* 04 shake · 急促左右抖：危险/破坏操作 */
+@keyframes tm-fx-shake-kf {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  20%  { transform: translateX(-18%) rotate(-6deg); }
+  40%  { transform: translateX(15%) rotate(5deg); }
+  60%  { transform: translateX(-11%) rotate(-4deg); }
+  80%  { transform: translateX(7%) rotate(2deg); }
+}
+.tm-fx-shake:hover > svg { animation: tm-fx-shake-kf .44s ease-in-out 1 both; }
+
+/* 05 nudge-up · 向上窜一下带回弹 */
+@keyframes tm-fx-nudge-up-kf {
+  0%   { transform: translateY(0); }
+  40%  { transform: translateY(-32%); }
+  70%  { transform: translateY(6%); }
+  100% { transform: translateY(0); }
+}
+.tm-fx-nudge-up:hover > svg { animation: tm-fx-nudge-up-kf .42s cubic-bezier(.34,1.4,.64,1) 1 both; }
+
+/* 06 nudge-down · 向下沉一下带回弹 */
+@keyframes tm-fx-nudge-down-kf {
+  0%   { transform: translateY(0); }
+  40%  { transform: translateY(32%); }
+  70%  { transform: translateY(-6%); }
+  100% { transform: translateY(0); }
+}
+.tm-fx-nudge-down:hover > svg { animation: tm-fx-nudge-down-kf .42s cubic-bezier(.34,1.4,.64,1) 1 both; }
+
+/* 07 pulse · 心跳双跳：灵感/通知/收藏 */
+@keyframes tm-fx-pulse-kf {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.2); }
+  45%  { transform: scale(.96); }
+  62%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.tm-fx-pulse:hover > svg { animation: tm-fx-pulse-kf .5s ease-in-out 1 both; }
+
+/* 08 dots · Ellipsis 波浪跳：lucide circle 顺序为 中、右、左 → 中点先跳两侧跟上 */
+@keyframes tm-fx-dot-kf {
+  0%, 100% { transform: translateY(0); }
+  35%      { transform: translateY(-3.5px); }
+  70%      { transform: translateY(.5px); }
+}
+.tm-fx-dots > svg circle { transform-box: fill-box; transform-origin: center; }
+.tm-fx-dots:hover > svg circle { animation: tm-fx-dot-kf .5s ease-in-out 1 both; }
+.tm-fx-dots:hover > svg circle:nth-child(2),
+.tm-fx-dots:hover > svg circle:nth-child(3) { animation-delay: .12s; }
+
+/* 09 swing · 钟摆：锚点在顶部，左右大幅摇摆（铃铛类） */
+@keyframes tm-fx-swing-kf {
+  0%   { transform: rotate(0deg); }
+  25%  { transform: rotate(16deg); }
+  50%  { transform: rotate(-13deg); }
+  72%  { transform: rotate(6deg); }
+  100% { transform: rotate(0deg); }
+}
+.tm-fx-swing:hover > svg {
+  transform-origin: 50% 18%;
+  animation: tm-fx-swing-kf .55s cubic-bezier(.34,1.4,.64,1) 1 both;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   tm-fx 库本体 B 区 · 运行中状态图标（图标本身循环动）
+   用法：<span class="tm-ico tm-ico-think"><svg>…</svg></span>
+   玻璃/方框/纸页等「外壳」保持静止，只让内部部件循环运动；
+   只动 transform/opacity/filter；reduced-motion 降级为静态可读图标。
+   图形：lucide（ISC）轮廓 + 少量原创内部线条；CSS 全部原创。
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tm-ico {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; flex: none;
+  color: var(--txt-2);
+  perspective: 80px;
+}
+.tm-ico > svg { width: 100%; height: 100%; display: block; }
+
+/* 11 think · 思考灯泡（1.65s）：外壳静止，灯丝在 Y 叉 / 直柱间循环明灭 */
+.tm-ico-think .i-fi { opacity: 0; }
+.tm-ico-think .i-fy,
+.tm-ico-think .i-fi { transform-box: fill-box; transform-origin: 50% 50%; }
+@keyframes tm-i-glow-kf {
+  0%, 58%, 100% { opacity: 1; }
+  14%           { opacity: .72; }
+  40%           { opacity: .9; }
+}
+@keyframes tm-i-fy-kf {
+  0%        { opacity: 1; transform: scaleY(1); }
+  11%       { opacity: 0; transform: scaleY(.4); }
+  41%       { opacity: 0; transform: scaleY(.4); }
+  53%       { opacity: 1; transform: scaleY(1); }
+  100%      { opacity: 1; transform: scaleY(1); }
+}
+@keyframes tm-i-fi-kf {
+  0%        { opacity: 0; transform: scaleY(.4); }
+  13%       { opacity: 1; transform: scaleY(1); }
+  39%       { opacity: 1; transform: scaleY(1); }
+  51%       { opacity: 0; transform: scaleY(.4); }
+  100%      { opacity: 0; transform: scaleY(.4); }
+}
+.tm-ico-think .i-glass { animation: tm-i-glow-kf 1.65s ease-in-out infinite; }
+.tm-ico-think .i-fy { animation: tm-i-fy-kf 1.65s ease-in-out infinite; }
+.tm-ico-think .i-fi { animation: tm-i-fi-kf 1.65s ease-in-out infinite; }
+
+/* 12 py · Python 终端（2.4s）：方框静止，> 提示符两组扭头摆动，_ 光标眨眼 */
+.tm-ico-py .i-chev { transform-box: fill-box; transform-origin: 50% 50%; }
+@keyframes tm-i-chev-kf {
+  0%, 100%     { transform: none; }
+  9%           { transform: translateX(.8px) rotate(10deg); }
+  18%          { transform: none; }
+  28%          { transform: translateX(-.7px) rotate(-8deg); }
+  38%, 58%     { transform: none; }
+  67%          { transform: translateX(.8px) rotate(10deg); }
+  76%          { transform: none; }
+  86%          { transform: translateX(-.7px) rotate(-8deg); }
+}
+@keyframes tm-i-cur-kf {
+  0%, 42%      { opacity: 1; }
+  48%, 84%     { opacity: .12; }
+  91%, 100%    { opacity: 1; }
+}
+.tm-ico-py .i-chev { animation: tm-i-chev-kf 2.4s ease-in-out infinite; }
+.tm-ico-py .i-cur { animation: tm-i-cur-kf 2.4s ease-in-out infinite; }
+
+/* 13 file · 读文件（1.85s）：纸页静止，三条横线自上而下写入，写完整页翻转一次重来 */
+.tm-ico-file .i-l { transform-box: fill-box; transform-origin: 0 50%; }
+@keyframes tm-i-l1-kf {
+  0%       { transform: scaleX(0); }
+  8%       { transform: scaleX(1); }
+  72%      { transform: scaleX(1); }
+  76%, 100%{ transform: scaleX(0); }
+}
+@keyframes tm-i-l2-kf {
+  0%, 9%   { transform: scaleX(0); }
+  19%      { transform: scaleX(1); }
+  72%      { transform: scaleX(1); }
+  76%, 100%{ transform: scaleX(0); }
+}
+@keyframes tm-i-l3-kf {
+  0%, 18%  { transform: scaleX(0); }
+  28%      { transform: scaleX(1); }
+  72%      { transform: scaleX(1); }
+  76%, 100%{ transform: scaleX(0); }
+}
+@keyframes tm-i-flip-kf {
+  0%, 58%  { transform: rotateY(0deg); }
+  72%      { transform: rotateY(92deg); }
+  86%, 100%{ transform: rotateY(0deg); }
+}
+.tm-ico-file .i-l1 { animation: tm-i-l1-kf 1.85s ease-in-out infinite; }
+.tm-ico-file .i-l2 { animation: tm-i-l2-kf 1.85s ease-in-out infinite; }
+.tm-ico-file .i-l3 { animation: tm-i-l3-kf 1.85s ease-in-out infinite; }
+.tm-ico-file > svg {
+  backface-visibility: hidden;
+  animation: tm-i-flip-kf 1.85s ease-in-out infinite;
+}
+
+/* 14 search · 搜索（2.1s）：放大镜静止，圈内三道短线从右向左扫，手柄轻点一下 */
+.tm-ico-search .i-sweep { transform-box: fill-box; transform-origin: 50% 50%; }
+.tm-ico-search .i-handle { transform-box: view-box; transform-origin: 11px 11px; }
+@keyframes tm-i-sweep-kf {
+  0%       { transform: translateX(3px); opacity: 0; }
+  20%      { transform: translateX(0); opacity: 1; }
+  42%, 100%{ transform: translateX(-3px); opacity: 0; }
+}
+@keyframes tm-i-handle-kf {
+  0%, 24%, 100% { transform: rotate(0deg); }
+  9%            { transform: rotate(-10deg); }
+  17%           { transform: rotate(7deg); }
+}
+.tm-ico-search .sw1 { animation: tm-i-sweep-kf 2.1s ease-in-out 0s infinite both; }
+.tm-ico-search .sw2 { animation: tm-i-sweep-kf 2.1s ease-in-out .16s infinite both; }
+.tm-ico-search .sw3 { animation: tm-i-sweep-kf 2.1s ease-in-out .32s infinite both; }
+.tm-ico-search .i-handle { animation: tm-i-handle-kf 2.1s ease-in-out infinite; }
+
+/* 10 wave · 思考波浪点：3×3 圆点阵，一道亮光沿对角线追过去 */
+.tm-fx-wave {
+  --tm-wave-s: 16px;
+  width: var(--tm-wave-s); height: var(--tm-wave-s);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  place-items: center;
+  flex: none; color: var(--txt-2);
+}
+.tm-fx-wave i {
+  width: 62%; height: 62%; border-radius: 50%;
+  background: currentColor; opacity: .15;
+  animation: tm-fx-wave-kf 1s linear infinite;
+}
+@keyframes tm-fx-wave-kf {
+  0%       { opacity: .17; }
+  23%      { opacity: .45; }
+  48%, 98% { opacity: .15; }
+  100%     { opacity: .17; }
+}
+.tm-fx-wave .w1 { animation-delay: .133s; }
+.tm-fx-wave .w2 { animation-delay: .267s; }
+.tm-fx-wave .w3 { animation-delay: .4s; }
+.tm-fx-wave .w4 { animation-delay: .533s; }
+
+/* 15 ring · 环形转圈：提交 / 发送中（conic 环 + 径向 mask，纯 CSS） */
+.tm-fx-ring {
+  --tm-ring-s: 18px;
+  width: var(--tm-ring-s); height: var(--tm-ring-s);
+  border-radius: 50%; flex: none; color: var(--txt-2);
+  background: conic-gradient(from 0deg, transparent 0deg, currentColor 330deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+  animation: tm-fx-ring-kf 1s linear infinite;
+}
+@keyframes tm-fx-ring-kf { to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   tm-fx 库本体 C 区 · 侧边栏 hover 图标套件（16 枚，每枚播一次）
+   结构：<button class="tm-nav tm-nav-1"><svg>…部件带 nv-* 类…</svg></button>
+   触发：JS 在 pointerenter 时加 .play（触摸/重播可控），animationend 移除。
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tm-nav [class*="nv-"] { transform-box: fill-box; transform-origin: 50% 50%; }
+
+/* 01 气泡加号：加号旋转 90° 带回弹，气泡轻喘 */
+@keyframes tm-n-plus-kf {
+  0%   { transform: rotate(0deg) scale(1); }
+  55%  { transform: rotate(102deg) scale(1.2); }
+  76%  { transform: rotate(84deg) scale(1.06); }
+  100% { transform: rotate(90deg) scale(1); }
+}
+@keyframes tm-n-bubble-kf {
+  0%, 100% { transform: scale(1); }
+  40%      { transform: scale(1.06); }
+  70%      { transform: scale(.98); }
+}
+.tm-nav-1 .nv-x { transform-box: view-box; transform-origin: 12px 12px; }
+.tm-nav-1.play .nv-x { animation: tm-n-plus-kf .42s ease-in-out 1 both; }
+.tm-nav-1.play .nv-bubble { animation: tm-n-bubble-kf .42s ease-in-out 1 both; }
+
+/* 02 笑脸：眼睛眨两下，嘴角一鼓 */
+@keyframes tm-n-blink-kf {
+  0%, 100% { transform: scaleY(1); }
+  12%, 56% { transform: scaleY(1); }
+  20%, 64% { transform: scaleY(.12); }
+  28%      { transform: scaleY(1); }
+}
+@keyframes tm-n-mouth-kf {
+  0%, 100% { transform: scale(1); }
+  34%      { transform: scale(1.16); }
+  54%      { transform: scale(.96); }
+}
+.tm-nav-2 .nv-eyes { transform-box: fill-box; transform-origin: 50% 20%; }
+.tm-nav-2.play .nv-eyes { animation: tm-n-blink-kf .83s ease-in-out 1 both; }
+.tm-nav-2.play .nv-mouth { animation: tm-n-mouth-kf .83s ease-in-out 1 both; }
+
+/* 03 拼图块：整体小幅扭身 */
+@keyframes tm-n-puzzle-kf {
+  0%   { transform: rotate(0deg) scale(1); }
+  40%  { transform: rotate(6deg) scale(1.08); }
+  70%  { transform: rotate(-4deg) scale(.97); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+.tm-nav-3.play svg { animation: tm-n-puzzle-kf .5s ease-in-out 1 both; }
+
+/* 04 闹钟：铃帽左右摆，指针向前拨一下 */
+@keyframes tm-n-bells-kf {
+  0%, 100% { transform: rotate(0deg); }
+  30%      { transform: rotate(-10deg); }
+  60%      { transform: rotate(8deg); }
+  82%      { transform: rotate(-3deg); }
+}
+@keyframes tm-n-hands-kf {
+  0%, 100% { transform: rotate(0deg); }
+  45%      { transform: rotate(16deg); }
+  72%      { transform: rotate(-5deg); }
+}
+.tm-nav-4 .nv-bells { transform-box: view-box; transform-origin: 12px 6px; }
+.tm-nav-4 .nv-hands { transform-box: view-box; transform-origin: 12px 13px; }
+.tm-nav-4.play .nv-bells { animation: tm-n-bells-kf .42s ease-in-out 1 both; }
+.tm-nav-4.play .nv-hands { animation: tm-n-hands-kf .42s ease-in-out 1 both; }
+
+/* 05 三点：从左到右依次起跳 */
+@keyframes tm-n-dot-kf {
+  0%, 100% { transform: translateY(0) scale(1); }
+  35%      { transform: translateY(-3px) scale(1.12); }
+  65%      { transform: translateY(.5px) scale(.96); }
+}
+.tm-nav-5 .nv-dot { transform-box: fill-box; transform-origin: 50% 50%; }
+.tm-nav-5.play .nv-dot { animation: tm-n-dot-kf .5s ease-in-out 1 both; }
+.tm-nav-5.play .nv-dot:nth-child(1) { animation-delay: .12s; }
+.tm-nav-5.play .nv-dot:nth-child(2) { animation-delay: .22s; }
+
+/* 06 演示板：板面落下弹住，支架随后长出 */
+@keyframes tm-n-board-kf {
+  0%   { transform: translateY(-4px) scaleY(.86); }
+  55%  { transform: translateY(0) scaleY(1.04); }
+  78%  { transform: scaleY(.98); }
+  100% { transform: translateY(0) scaleY(1); }
+}
+@keyframes tm-n-stand-kf {
+  0%   { transform: translateY(3px); opacity: .15; }
+  45%, 100% { transform: translateY(0); opacity: 1; }
+}
+.tm-nav-6 .nv-board { transform-box: view-box; transform-origin: 12px 9px; }
+.tm-nav-6.play .nv-board { animation: tm-n-board-kf .5s cubic-bezier(.34,1.4,.64,1) 1 both; }
+.tm-nav-6.play .nv-stand { animation: tm-n-stand-kf .5s ease-out .08s 1 both; }
+
+/* 07 集群：三个节点依次弹出，连线随后接通 */
+@keyframes tm-n-node-kf {
+  0%   { transform: scale(.4); opacity: .3; }
+  55%  { transform: scale(1.22); opacity: 1; }
+  78%  { transform: scale(.94); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes tm-n-link-kf {
+  0%   { transform: translateY(2px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.tm-nav-7.play .nv-node { animation: tm-n-node-kf .5s cubic-bezier(.34,1.5,.64,1) 1 both; }
+.tm-nav-7.play .nv-node-t { animation-delay: .04s; }
+.tm-nav-7.play .nv-node-l,
+.tm-nav-7.play .nv-node-r { animation-delay: .2s; }
+.tm-nav-7.play .nv-link { animation: tm-n-link-kf .32s ease-out 1 both; }
+.tm-nav-7.play .nv-link-1 { animation-delay: .14s; }
+.tm-nav-7.play .nv-link-2 { animation-delay: .3s; }
+
+/* 08 显微镜：镜筒绕底座点两下头 */
+@keyframes tm-n-scope-kf {
+  0%, 100% { transform: rotate(0deg); }
+  30%      { transform: rotate(-8deg); }
+  58%      { transform: rotate(6deg); }
+  80%      { transform: rotate(-2deg); }
+}
+.tm-nav-8 .nv-body { transform-box: view-box; transform-origin: 9px 13px; }
+.tm-nav-8.play .nv-body { animation: tm-n-scope-kf .67s ease-in-out 1 both; }
+
+/* 09 文档：纸页轻弹，三行文字自上而下写出 */
+@keyframes tm-n-page-kf {
+  0%, 100% { transform: scale(1); }
+  40%      { transform: scale(1.05); }
+  70%      { transform: scale(.98); }
+}
+@keyframes tm-n-line-kf {
+  0%   { transform: scaleX(0); opacity: .3; }
+  100% { transform: scaleX(1); opacity: 1; }
+}
+.tm-nav-9 .nv-ln { transform-box: fill-box; transform-origin: 0 50%; }
+.tm-nav-9.play .nv-page { animation: tm-n-page-kf .6s ease-in-out 1 both; }
+.tm-nav-9.play .nv-ln { animation: tm-n-line-kf .32s ease-out 1 both; }
+.tm-nav-9.play .nv-ln2 { animation-delay: .1s; }
+.tm-nav-9.play .nv-ln3 { animation-delay: .2s; }
+
+/* 10 网站：经线水平翻面（地球自转），外圈轻喘，赤道淡入 */
+@keyframes tm-n-spin-kf {
+  0%   { transform: scaleX(1); }
+  50%  { transform: scaleX(-1); }
+  100% { transform: scaleX(1); }
+}
+@keyframes tm-n-pop-soft-kf {
+  0%, 100% { transform: scale(1); }
+  40%      { transform: scale(1.07); }
+  72%      { transform: scale(.97); }
+}
+@keyframes tm-n-eq-kf {
+  0%   { opacity: .3; }
+  45%, 100% { opacity: 1; }
+}
+.tm-nav-10.play .nv-mer { animation: tm-n-spin-kf .7s ease-in-out 1 both; }
+.tm-nav-10.play .nv-ring2 { animation: tm-n-pop-soft-kf .7s ease-in-out 1 both; }
+.tm-nav-10.play .nv-eq { animation: tm-n-eq-kf .7s ease-in-out 1 both; }
+
+/* 11 表格：表头行无竖线；两根竖线自表头分隔线向下错峰立起，两条横线自左长出，外框收口 */
+@keyframes tm-n-v-kf {
+  0%   { transform: scaleY(0); }
+  100% { transform: scaleY(1); }
+}
+@keyframes tm-n-hh-kf {
+  0%   { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+@keyframes tm-n-box-kf {
+  0%, 100% { transform: scale(1); }
+  55%      { transform: scale(1.05); }
+}
+.tm-nav-11 .nv-v1 { transform-box: view-box; transform-origin: 9px 9px; }
+.tm-nav-11 .nv-v2 { transform-box: view-box; transform-origin: 15px 9px; }
+.tm-nav-11 .nv-hh { transform-box: view-box; transform-origin: 3px 50%; }
+.tm-nav-11.play .nv-v { animation: tm-n-v-kf .36s ease-out 1 both; }
+.tm-nav-11.play .nv-v2 { animation-delay: .1s; }
+.tm-nav-11.play .nv-hh { animation: tm-n-hh-kf .34s ease-out 1 both; }
+.tm-nav-11.play .nv-hh2 { animation-delay: .12s; }
+.tm-nav-11.play .nv-box { animation: tm-n-box-kf .6s ease-in-out .34s 1 both; }
+
+/* 12 图片：太阳先蹦出，山峦随后升起 */
+@keyframes tm-n-sun-kf {
+  0%   { transform: scale(0); }
+  55%  { transform: scale(1.3); }
+  78%  { transform: scale(.92); }
+  100% { transform: scale(1); }
+}
+@keyframes tm-n-rise-kf {
+  0%   { transform: translateY(4px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.tm-nav-12.play .nv-sun { animation: tm-n-sun-kf .7s cubic-bezier(.34,1.5,.64,1) .06s 1 both; }
+.tm-nav-12.play .nv-mtn { animation: tm-n-rise-kf .42s ease-out .22s 1 both; }
+
+/* 13 显示器：屏幕自下而上弹起，底座支架随后落位 */
+@keyframes tm-n-screen-kf {
+  0%   { transform: scaleY(.85); }
+  55%  { transform: scaleY(1.04); }
+  78%  { transform: scaleY(.98); }
+  100% { transform: scaleY(1); }
+}
+.tm-nav-13 .nv-screen { transform-box: view-box; transform-origin: 12px 17px; }
+.tm-nav-13.play .nv-screen { animation: tm-n-screen-kf .55s cubic-bezier(.34,1.4,.64,1) 1 both; }
+.tm-nav-13.play .nv-stand { animation: tm-n-rise-kf .42s ease-out .26s 1 both; }
+
+/* 14 终端：> 提示符扭头，_ 光标长出 */
+@keyframes tm-n-tchev-kf {
+  0%, 100% { transform: rotate(0deg); }
+  35%      { transform: rotate(-12deg); }
+  65%      { transform: rotate(9deg); }
+}
+@keyframes tm-n-tdash-kf {
+  0%   { transform: scaleX(.4); opacity: .3; }
+  100% { transform: scaleX(1); opacity: 1; }
+}
+.tm-nav-14 .nv-chev { transform-box: fill-box; transform-origin: 50% 50%; }
+.tm-nav-14 .nv-dash { transform-box: fill-box; transform-origin: 0 50%; }
+.tm-nav-14.play .nv-chev { animation: tm-n-tchev-kf .6s ease-in-out 1 both; }
+.tm-nav-14.play .nv-dash { animation: tm-n-tdash-kf .45s ease-out .15s 1 both; }
+
+/* 15 猫咪：头一歪，眼睛眨一下，鼻子弹一下 */
+@keyframes tm-n-cat-kf {
+  0%, 100% { transform: rotate(0deg); }
+  30%      { transform: rotate(6deg); }
+  58%      { transform: rotate(-5deg); }
+  80%      { transform: rotate(2deg); }
+}
+@keyframes tm-n-nose-kf {
+  0%   { transform: scale(.5); }
+  55%  { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+.tm-nav-15 .nv-head { transform-box: view-box; transform-origin: 12px 13px; }
+.tm-nav-15 .nv-eyes { transform-box: fill-box; transform-origin: 50% 30%; }
+.tm-nav-15.play .nv-head { animation: tm-n-cat-kf .8s ease-in-out 1 both; }
+.tm-nav-15.play .nv-eyes { animation: tm-n-blink-kf .8s ease-in-out .12s 1 both; }
+.tm-nav-15.play .nv-nose { animation: tm-n-nose-kf .8s cubic-bezier(.34,1.5,.64,1) .18s 1 both; }
+
+/* 16 文件夹加号：加号转 90°，文件夹轻颤 */
+@keyframes tm-n-bag-kf {
+  0%, 100% { transform: translateX(0); }
+  35%      { transform: translateX(-1px); }
+  65%      { transform: translateX(.8px); }
+}
+.tm-nav-16 .nv-x { transform-box: view-box; transform-origin: 12px 13px; }
+.tm-nav-16.play .nv-x { animation: tm-n-plus-kf .7s ease-in-out 1 both; }
+.tm-nav-16.play .nv-bag { animation: tm-n-bag-kf .7s ease-in-out 1 both; }
+
+/* reduced-motion：A/B/C 三区全部降级为静态 */
+@media (prefers-reduced-motion: reduce) {
+  .tm-fx-wobble:hover > svg, .tm-fx-pop:hover > svg, .tm-fx-turn:hover > svg,
+  .tm-fx-shake:hover > svg, .tm-fx-nudge-up:hover > svg, .tm-fx-nudge-down:hover > svg,
+  .tm-fx-pulse:hover > svg, .tm-fx-dots:hover > svg circle, .tm-fx-swing:hover > svg {
+    animation: none;
+  }
+  .tm-ico-think .i-glass,
+  .tm-ico-think .i-fy,
+  .tm-ico-think .i-fi,
+  .tm-ico-py .i-chev,
+  .tm-ico-py .i-cur,
+  .tm-ico-file .i-l1,
+  .tm-ico-file .i-l2,
+  .tm-ico-file .i-l3,
+  .tm-ico-file > svg,
+  .tm-ico-search .sw1,
+  .tm-ico-search .sw2,
+  .tm-ico-search .sw3,
+  .tm-ico-search .i-handle,
+  .tm-fx-wave i,
+  .tm-fx-ring,
+  .tm-nav [class*="nv-"] {
+    animation: none !important;
+  }
+  .tm-ico-think .i-fi { display: none; }
+  .tm-ico-think .i-fy { opacity: 1; }
+  .tm-ico-file .i-l1,
+  .tm-ico-file .i-l2,
+  .tm-ico-file .i-l3 { transform: none; }
+  .tm-ico-search .i-sweep { opacity: 0; }
+  .tm-fx-wave i { opacity: .45; }
+  .tm-fx-ring { opacity: .45; }
+  .opt [class*="oc-"] { animation: none !important; }
+  .opt-D .oc-pulse { display: none; }
+  .optp [class*="pc-"] { animation: none !important; }
+  .optp-A .pc-rows { opacity: 1; }
+  .optp-A .pc-l { transform: none; opacity: 1; }
+  .optp-A .pc-cur { display: none; }
+  .optp-C .pc-code { opacity: .55; }
+  .optp-C .pc-scan { display: none; }
+  .optp-D [class*="pc-e"] { transform: scaleY(.6); }
+  .optr [class*="rc-"] { animation: none !important; }
+}
+
+/* ── 第二/三分区演示台样式（非库本体） ── */
+.sec-title { margin: 46px 0 2px; font-size: 17px; font-weight: 650; }
+.sec-sub { color: var(--txt-3); font-size: 12.5px; margin: 0 0 16px; line-height: 1.7; max-width: 820px; }
+.flow-card { grid-template-columns: 1fr; gap: 12px; }
+.flow-stage { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.flow-stage .lab { font-size: 11.5px; color: var(--txt-3); }
+.flow-size-tag { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--txt-3); font-size: 11px; }
+
+.stat-mock {
+  width: 420px; max-width: 100%;
+  background: #101318; border: 1px solid var(--card-border);
+  border-radius: 10px; padding: 10px 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.stat-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--txt-2); flex: 1; min-width: 0; }
+.stat-row .done-ico,
+.stat-row .done-txt { display: none; }
+.stat-row.done .run-ico,
+.stat-row.done .run-txt { display: none; }
+.stat-row.done .done-ico { display: inline-flex; color: #7fe0a8; }
+.stat-row.done .done-txt { display: inline; color: var(--txt-3); }
+.stat-row svg { width: 15px; height: 15px; flex: none; }
+.stat-toggle { flex: none; }
+
+/* 侧栏套件网格 */
+.nav-grid {
+  display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px 8px;
+}
+.nav-cell { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.nav-btn {
+  width: 46px; height: 46px; border-radius: 10px;
+  display: grid; place-items: center;
+  color: var(--txt-2); background: transparent; border: 1px solid transparent;
+  cursor: pointer; transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.nav-btn:hover, .nav-btn.play { background: var(--hover-bg); color: var(--txt); }
+.nav-btn svg { width: 22px; height: 22px; }
+.nav-label { font-size: 11px; color: var(--txt-3); white-space: nowrap; }
+body.size-real .nav-btn { width: 34px; height: 34px; border-radius: 8px; }
+body.size-real .nav-btn svg { width: 16px; height: 16px; }
+.nav-actions { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+
+/* ── 思考灯泡内部动效候选（临时评审，定稿后替换 tm-ico-think） ── */
+.cand-grid { display: flex; gap: 14px; flex-wrap: wrap; }
+.cand {
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 12px; padding: 16px 16px 12px; min-width: 104px;
+}
+.cand .tm-ico { width: 44px; height: 44px; }
+.cand b { font-size: 13px; letter-spacing: .08em; color: var(--txt); }
+.cand .clab { color: var(--txt-3); font-size: 11.5px; text-align: center; line-height: 1.5; }
+.opt [class*="oc-"] { transform-box: fill-box; transform-origin: 50% 50%; }
+
+/* D 脑波折线：一道脉冲沿心电图折线扫过 */
+.opt-D .oc-ghost { opacity: .16; }
+.opt-D .oc-pulse { stroke-dasharray: 22 78; animation: oc-run-kf 1.5s linear infinite; }
+@keyframes oc-run-kf { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -100; } }
+
+/* F 双闪呼吸：静态灯丝，玻璃+灯丝两连闪 */
+.opt-F .oc-glass { animation: oc-beat-g-kf 2s ease-in-out infinite; }
+.opt-F .oc-wire  { animation: oc-beat-w-kf 2s ease-in-out infinite; }
+@keyframes oc-beat-g-kf {
+  0%, 100% { opacity: .82; }
+  10%      { opacity: 1; }
+  22%      { opacity: .88; }
+  34%      { opacity: 1; }
+  72%      { opacity: .82; }
+}
+@keyframes oc-beat-w-kf {
+  0%, 100% { opacity: .45; }
+  10%      { opacity: 1; }
+  22%      { opacity: .5; }
+  34%      { opacity: 1; }
+  72%      { opacity: .45; }
+}
+
+/* ── Python 终端内部动效候选（临时评审，定稿后替换 tm-ico-py） ── */
+.optp [class*="pc-"] { transform-box: fill-box; transform-origin: 0 50%; }
+
+/* T-A 逐行输出（2.4s）：空屏淡入→命令打出→行尾光标闪（回车）→结果三行嗒嗒逐行出→停住→整屏淡出。
+   首尾关键帧全部 opacity:0 + both，杜绝循环边界/首帧绘制/视口外节流校正时整屏闪一下 */
+.optp-A .pc-rows { animation: pc-screen-kf 2.4s ease-in-out infinite both; }
+.optp-A .pc-l { transform-box: fill-box; transform-origin: 0 50%; }
+.optp-A .pc-l1 { animation: pc-type1-kf 2.4s ease-out infinite both; }
+.optp-A .pc-l2 { animation: pc-type2-kf 2.4s ease-out infinite both; }
+.optp-A .pc-l3 { animation: pc-type3-kf 2.4s ease-out infinite both; }
+.optp-A .pc-l4 { animation: pc-type4-kf 2.4s ease-out infinite both; }
+.optp-A .pc-cur { transform-box: fill-box; transform-origin: 50% 50%; animation: pc-caret-kf 2.4s ease-in-out infinite both; }
+@keyframes pc-screen-kf {
+  0%       { opacity: 0; }
+  6%       { opacity: 1; }
+  74%      { opacity: 1; }
+  82%,100% { opacity: 0; }
+}
+@keyframes pc-type1-kf {
+  0%       { transform: scaleX(0); opacity: 0; }
+  13%      { transform: scaleX(1); opacity: 1; }
+  74%      { transform: scaleX(1); opacity: 1; }
+  82%,100% { opacity: 0; }
+}
+@keyframes pc-type2-kf {
+  0%, 15%  { transform: scaleX(0); opacity: 0; }
+  24%      { transform: scaleX(1); opacity: 1; }
+  74%      { transform: scaleX(1); opacity: 1; }
+  82%,100% { opacity: 0; }
+}
+@keyframes pc-type3-kf {
+  0%, 26%  { transform: scaleX(0); opacity: 0; }
+  35%      { transform: scaleX(1); opacity: 1; }
+  74%      { transform: scaleX(1); opacity: 1; }
+  82%,100% { opacity: 0; }
+}
+@keyframes pc-type4-kf {
+  0%, 37%  { transform: scaleX(0); opacity: 0; }
+  46%      { transform: scaleX(1); opacity: 1; }
+  74%      { transform: scaleX(1); opacity: 1; }
+  82%,100% { opacity: 0; }
+}
+@keyframes pc-caret-kf {
+  0%, 13%  { opacity: 0; }
+  17%      { opacity: 1; }
+  24%      { opacity: .1; }
+  31%      { opacity: 1; }
+  45%      { opacity: .1; }
+  52%      { opacity: 1; }
+  66%      { opacity: .1; }
+  73%      { opacity: 1; }
+  82%,100% { opacity: 0; }
+}
+
+/* T-C 扫描线：暗代码行静止，亮线自上而下扫过 */
+.optp-C .pc-code { opacity: .22; }
+.optp-C .pc-scan { transform-box: fill-box; transform-origin: 50% 50%; animation: pc-scan-kf 1.8s linear infinite; }
+@keyframes pc-scan-kf {
+  0%       { transform: translateY(0);     opacity: 0; }
+  8%       { opacity: 1; }
+  84%      { opacity: 1; }
+  100%     { transform: translateY(9.6px); opacity: 0; }
+}
+
+/* T-D 处理柱：三根圆角柱绕底部错峰起伏 */
+.optp-D [class*="pc-e"] { transform-box: fill-box; transform-origin: 50% 100%; animation: pc-eq-kf .9s ease-in-out infinite; }
+.optp-D .pc-e2 { animation-delay: -.3s; }
+.optp-D .pc-e3 { animation-delay: -.6s; }
+@keyframes pc-eq-kf {
+  0%, 100% { transform: scaleY(.32); }
+  50%      { transform: scaleY(1); }
+}
+
+/* ══════════════ 部署火箭 · C 推力震动（已定稿，已接入 src 的 inp-deploy / dp-lead） ══════════════
+ * lucide rocket 原笔画（ISC，path 实读 node_modules 核对）拆部件：
+ *   g.rc-all = 整机；g.rc-body = 机身三笔；path.rc-flame = 左下火焰。
+ * 未部署时本审查台始终循环演示；产品内为 hover 播放一次，.is-deploying 时无限循环。 */
+.optr [class*="rc-"] { transform-box: fill-box; transform-origin: 50% 50%; }
+/* 火焰根部在其右上角（与左尾翼的连接处），沿喷气方向缩放 */
+.optr .rc-flame { transform-origin: 100% 0%; }
+
+.optr-C .rc-all { animation: rc-thrust-kf 1.05s ease-in-out infinite both; }
+.optr-C .rc-flame { animation: rc-flick-kf .34s ease-in-out infinite both; }
+@keyframes rc-thrust-kf {
+  0%,100% { transform: translate(0,0); }
+  25%     { transform: translate(-.9px,.9px); }
+  55%     { transform: translate(1.3px,-1.3px); }
+}
+@keyframes rc-flick-kf {
+  0%,100% { opacity: .75; transform: scale(.9); }
+  50%     { opacity: 1;   transform: scale(1.22); }
+}
+
+/* 候选区实际尺寸走查条（13/16/20px） */
+.rc-minirow {
+  display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+  margin-top: 14px; background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 12px; padding: 12px 16px;
+}
+.rc-mini-lab { font-size: 11.5px; color: var(--txt-3); }
+.rc-mgroup { display: flex; align-items: center; gap: 8px; color: var(--txt-2); }
+.rc-mgroup b { font-size: 11px; letter-spacing: .08em; color: var(--txt-3); }
+.rc-mgroup span[class*="rc-m"] { display: inline-flex; align-items: center; justify-content: center; }
+.rc-m13 { width: 13px; height: 13px; }
+.rc-m16 { width: 16px; height: 16px; }
+.rc-m20 { width: 20px; height: 20px; }
+
+/* ══════════════ D 区：侧栏图标重构候选（插件 / 网站 / 导航收展），临时评审 ══════════════ */
+.optx {
+  width: 46px; height: 46px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--txt-2); background: transparent; border: 0; padding: 0; cursor: pointer;
+  border-radius: 10px; perspective: 90px;
+}
+.optx:hover { background: var(--hover-bg); color: var(--txt); }
+.optx svg { width: 26px; height: 26px; }
+.optx [class*="zp-"], .optx [class*="gl-"], .optx [class*="pn-"] { transform-box: view-box; transform-origin: 12px 12px; }
+
+/* ── 插件 puzzle：单条闭合轮廓，只做整体运动 ── */
+/* 0 现版：整体扭身 */
+.optz-0.play .zp-all { animation: zp-cur-kf .5s ease-in-out 1 both; }
+@keyframes zp-cur-kf {
+  0%   { transform: rotate(0deg) scale(1); }
+  40%  { transform: rotate(6deg) scale(1.08); }
+  70%  { transform: rotate(-4deg) scale(.97); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+/* A 按入嵌合：浮起 → 下压咔哒 → 回弹 */
+.optz-A.play .zp-all { animation: zp-press-kf .5s cubic-bezier(.34,1.5,.64,1) 1 both; }
+@keyframes zp-press-kf {
+  0%   { transform: translateY(-3px) scale(1.18); }
+  42%  { transform: translateY(1.4px) scale(.88); }
+  70%  { transform: translateY(0) scale(1.05); }
+  100% { transform: translateY(0) scale(1); }
+}
+/* B 挂入摇摆：绕顶部挂钩摆入 */
+.optz-B .zp-all { transform-origin: 12px 3px; }
+.optz-B.play .zp-all { animation: zp-hang-kf .55s ease-out 1 both; }
+@keyframes zp-hang-kf {
+  0%   { transform: rotate(-14deg) translateY(-2px); }
+  42%  { transform: rotate(10deg) translateY(0); }
+  72%  { transform: rotate(-5deg); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+/* C 翻面：水平翻转一次 */
+.optz-C.play .zp-all { animation: zp-flip-kf .5s ease-in 1 both; }
+@keyframes zp-flip-kf {
+  0%   { transform: rotateY(0deg); }
+  100% { transform: rotateY(-180deg); }
+}
+/* D 咬合轻颤：左右错两下再咔哒归位 */
+.optz-D.play .zp-all { animation: zp-lock-kf .45s ease-in-out 1 both; }
+@keyframes zp-lock-kf {
+  0%   { transform: translateX(0) rotate(0deg) scale(1); }
+  25%  { transform: translateX(3px) rotate(2.5deg) scale(.98); }
+  50%  { transform: translateX(-2.5px) rotate(-2deg) scale(.98); }
+  75%  { transform: translateX(1.4px) rotate(0deg) scale(.96); }
+  100% { transform: translateX(0) rotate(0deg) scale(1); }
+}
+
+/* ── 网站 globe：外圆 / 经线 / 赤道 三部件重排 ── */
+/* 0 现版：经线翻面 + 外圈轻喘 + 赤道淡入 */
+.optg-0.play .gl-mer { animation: gl0-mer-kf .7s ease-in-out 1 both; }
+.optg-0.play .gl-ring { animation: gl0-ring-kf .7s ease-in-out 1 both; }
+.optg-0.play .gl-eq { animation: gl0-eq-kf .7s ease-in-out 1 both; }
+@keyframes gl0-mer-kf { 0% { transform: scaleX(1); } 50% { transform: scaleX(-1); } 100% { transform: scaleX(1); } }
+@keyframes gl0-ring-kf { 0%,100% { transform: scale(1); } 40% { transform: scale(1.07); } 72% { transform: scale(.97); } }
+@keyframes gl0-eq-kf { 0% { opacity: .3; } 45%,100% { opacity: 1; } }
+/* A 描线成球：外圆→经线→赤道依次一笔画出 */
+.optg-A [class*="gl-d"] { stroke-dasharray: 100; stroke-dashoffset: 100; }
+.optg-A.play .gl-d-ring { animation: gl-draw-kf .42s ease-out 0s 1 both; }
+.optg-A.play .gl-d-mer { animation: gl-draw-kf .36s ease-out .14s 1 both; }
+.optg-A.play .gl-d-eq { animation: gl-draw-kf .3s ease-out .28s 1 both; }
+@keyframes gl-draw-kf { to { stroke-dashoffset: 0; } }
+/* B 定位环绕：经纬线暗置，亮点沿压扁经线（椭圆）绕一圈。
+   外层固定 scaleX(.38)、内层旋转，点轨迹才是椭圆；若反过来压扁层会被带着转、点走正圆 */
+.optg-B .gl-base { opacity: .25; }
+.optg-B .gl-orbit { transform: scaleX(.38); }
+.optg-B .gl-orbit-in { transform-origin: 12px 12px; }
+.optg-B.play .gl-orbit-in { animation: gl-rot-kf .9s linear 1 both; }
+@keyframes gl-rot-kf { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+/* C 整球翻面：整体绕竖轴翻一次 */
+.optg-C.play .gl-spin { animation: gl-flip-kf .55s ease-in-out 1 both; }
+@keyframes gl-flip-kf {
+  0%   { transform: rotateY(0deg); }
+  100% { transform: rotateY(-180deg); }
+}
+/* D 织网收口：赤道横长 → 经线竖长 → 外圆收口 */
+.optg-D .gl-eq { transform-origin: 3px 12px; }
+.optg-D .gl-mer { transform-origin: 12px 12px; }
+.optg-D.play .gl-eq { animation: gl-gx-kf .26s ease-out 0s 1 both; }
+.optg-D.play .gl-mer { animation: gl-gy-kf .3s ease-out .12s 1 both; }
+.optg-D.play .gl-ring { animation: gr-ring-kf .4s cubic-bezier(.34,1.4,.64,1) .26s 1 both; }
+@keyframes gl-gx-kf { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes gl-gy-kf { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes gr-ring-kf {
+  0%   { transform: scale(.82); }
+  70%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* ── 导航收起 / 展开：方框静止，竖条与箭头演绎两态切换（每方案两个方向各一个按钮） ── */
+.pn-pair { display: flex; gap: 4px; }
+.pn-ico {
+  width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--txt-2); background: transparent; border: 0; padding: 0; cursor: pointer;
+  border-radius: 9px; perspective: 90px;
+}
+.pn-ico:hover { background: var(--hover-bg); color: var(--txt); }
+.pn-ico svg { width: 24px; height: 24px; }
+.pn-dir { font: 10px/1.2 ui-monospace, monospace; color: var(--txt-3); margin-top: 2px; text-align: center; }
+.pn-cell { display: flex; flex-direction: column; align-items: center; }
+
+/* 静止态只有方框+竖条（即 lucide panel-left 原样），箭头默认没有；hover 加 .play 后箭头才"出现"。
+   所有方案中方框与竖条全程不动，只有箭头入场，避免多根线同时运动互相打架。 */
+.opn-A .pn-chv, .opn-B .pn-chv, .opn-C .pn-chv, .opn-D .pn-c1, .opn-D .pn-c2 { opacity: 0; transition: opacity .12s ease; }
+
+/* PN-A 写出：箭头两笔顺着方向一笔画出（参考同类产品约 0.2s 笔画节奏，曲线与关键帧原创） */
+.opn-A .pn-chv { stroke-dasharray: 10; stroke-dashoffset: 10; }
+.opn-A.play .pn-chv { animation: pn-draw-kf .26s ease-out 1 both; }
+@keyframes pn-draw-kf {
+  0%   { opacity: 0; stroke-dashoffset: 10; }
+  18%  { opacity: 1; }
+  100% { opacity: 1; stroke-dashoffset: 0; }
+}
+
+/* PN-B 弹入：箭头在竖条旁从小而淡松入，过冲一点停住 */
+.opn-B .pn-chv { transform-box: view-box; }
+.opn-B.pn-close .pn-chv { transform-origin: 14.5px 12px; }
+.opn-B.pn-open  .pn-chv { transform-origin: 15.5px 12px; }
+.opn-B.play .pn-chv { animation: pn-pop-kf .32s cubic-bezier(.34,1.5,.64,1) 1 both; }
+@keyframes pn-pop-kf {
+  0%   { opacity: 0; transform: scale(.5); }
+  70%  { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* PN-C 滑出：箭头从竖条背后横着滑出（收起态箭头在竖条右侧、自左滑入；展开态反之） */
+.opn-C .pn-chv { transform-box: view-box; }
+.opn-C.play.pn-close .pn-chv { animation: pn-slide-l-kf .28s ease-out 1 both; }
+.opn-C.play.pn-open  .pn-chv { animation: pn-slide-r-kf .28s ease-out 1 both; }
+@keyframes pn-slide-l-kf {
+  0%   { opacity: 0; transform: translateX(-4px); }
+  25%  { opacity: 1; }
+  100% { opacity: 1; transform: translateX(0); }
+}
+@keyframes pn-slide-r-kf {
+  0%   { opacity: 0; transform: translateX(4px); }
+  25%  { opacity: 1; }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+/* PN-D 两笔跳出：箭头上下两段各自小弹，错峰 0.1s 出现 */
+.opn-D .pn-c1, .opn-D .pn-c2 { transform-box: view-box; }
+.opn-D.pn-close .pn-c1, .opn-D.pn-close .pn-c2 { transform-origin: 14.5px 12px; }
+.opn-D.pn-open  .pn-c1, .opn-D.pn-open  .pn-c2 { transform-origin: 15.5px 12px; }
+.opn-D.play .pn-c1 { animation: pn-seg-kf .18s ease-out .04s 1 both; }
+.opn-D.play .pn-c2 { animation: pn-seg-kf .18s ease-out .14s 1 both; }
+@keyframes pn-seg-kf {
+  0%   { opacity: 0; transform: scale(.7); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .optx [class*="zp-"], .optx [class*="gl-"], .optx [class*="pn-"] { animation: none !important; }
+  .optg-A [class*="gl-d"] { stroke-dashoffset: 0; }
+  .optg-B .gl-base { opacity: 1; }
+  .optg-B .gl-orbit { transform: none; }
+  .optg-D .gl-eq, .optg-D .gl-mer { transform: none; }
+  .pn-ico [class*="pn-"] { animation: none !important; }
+  .opn-A .pn-chv { stroke-dashoffset: 0; }
+  .opn-A .pn-chv, .opn-B .pn-chv, .opn-C .pn-chv, .opn-D .pn-c1, .opn-D .pn-c2 { opacity: 1; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="prefix">tm-fx</span>会动的图标库 · 审查台</h1>
+    <p>两类：<b>A</b> 通用 hover 一次性微动效；<b>B</b> 运行中状态图标（灯泡 / 终端 / 文件 / 搜索，图标自己循环动）；<b>C</b> 侧边栏 16 枚 hover 图标套件。纯 CSS、只动 transform/opacity、GPU 合成、不触发布局。</p>
+    <div class="tips">
+      <b>hover</b> 任意图标试手感 · <b>点击图标</b> 原地重播 · <b>点击蓝色类名</b> 复制到剪贴板
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <button class="tbtn on" id="sizeReview" type="button">审查尺寸</button>
+    <button class="tbtn" id="sizeReal" type="button">实际尺寸（13px / 侧栏 16px）</button>
+  </div>
+
+  <!-- A 区卡片由 JS 依据图标定义统一渲染 -->
+  <div id="grid"></div>
+
+  <h2 class="sec-title">B · 运行中状态图标（图标自己会动）</h2>
+  <p class="sec-sub">
+    工具运行时挂在状态行最前面的图标：外壳（灯泡玻璃 / 终端方框 / 文件纸页）保持静止，
+    只让<strong>内部部件</strong>循环运动；运行结束直接换回静态完成图标。节奏参数来自活体观察，
+    图形为 lucide（ISC）轮廓 + 少量原创内部线条，CSS 全部原创重写，不含任何第三方帧图或原始代码。
+  </p>
+  <div id="stateGrid">
+
+    <div class="card flow-card">
+      <div class="card-info">
+        <div class="card-title">
+          <span class="num">10</span>
+          <span class="name">思考波浪点</span>
+          <span class="chip" data-cls="tm-fx-wave" title="点击复制">tm-fx-wave</span>
+          <span class="params">1.0s · linear 循环 · 错峰 0.133s</span>
+        </div>
+        <div class="desc">3×3 圆点阵，一道高亮沿左上→右下对角线依次追过去。头像旁、侧栏会话的「思考中」指示。</div>
+        <div class="rec">挂载：<code>span.tm-fx-wave</code> 内放 9 个 <code>&lt;i&gt;</code>，相位类 <code>w1~w4</code>（JS 装配）</div>
+      </div>
+      <div class="flow-stage">
+        <span class="flow-size-tag"><span class="tm-fx-wave" style="--tm-wave-s:14px"></span>14px</span>
+        <span class="flow-size-tag"><span class="tm-fx-wave" style="--tm-wave-s:20px"></span>20px</span>
+        <span class="flow-size-tag"><span class="tm-fx-wave" style="--tm-wave-s:28px"></span>28px</span>
+      </div>
+    </div>
+
+    <div class="card flow-card">
+      <div class="card-info">
+        <div class="card-title">
+          <span class="num">11</span>
+          <span class="name">思考灯泡</span>
+          <span class="chip" data-cls="tm-ico-think" title="点击复制">tm-ico-think</span>
+          <span class="params">1.65s 循环 · 灯丝 Y↔I 变形 · 外壳静止</span>
+        </div>
+        <div class="desc">灯泡玻璃与底座静止，内部灯丝在「Y 叉」与「直柱」之间循环变形明灭，长停顿后再变一次。对应 AI 思考状态。</div>
+      </div>
+      <div class="flow-stage">
+        <span class="flow-size-tag"><span class="tm-ico tm-ico-think" style="width:14px;height:14px" data-run="think"></span>14px</span>
+        <span class="flow-size-tag"><span class="tm-ico tm-ico-think" style="width:20px;height:20px" data-run="think"></span>20px</span>
+        <span class="flow-size-tag"><span class="tm-ico tm-ico-think" style="width:28px;height:28px" data-run="think"></span>28px</span>
+        <span class="lab">↓ 状态行两态切换</span>
+        <div class="stat-mock">
+          <div class="stat-row">
+            <span class="tm-ico tm-ico-think run-ico" data-run="think"></span>
+            <span class="run-txt">正在思考中…</span>
+            <span class="done-ico" data-ic="check"></span>
+            <span class="done-txt">思考完成</span>
+          </div>
+          <button type="button" class="tbtn stat-toggle">切到完成态</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card flow-card">
+      <div class="card-info">
+        <div class="card-title">
+          <span class="num">12</span>
+          <span class="name">Python 终端</span>
+          <span class="chip" data-cls="tm-ico-py" title="点击复制">tm-ico-py</span>
+          <span class="params">2.4s 循环 · &gt; 扭头两组 · _ 眨眼</span>
+        </div>
+        <div class="desc">圆角方框静止，内部 &gt; 提示符左右扭头摆动两次、中段停顿；下划线光标在后半程眨眼一次。对应运行 Python / shell 命令。</div>
+      </div>
+      <div class="flow-stage">
+        <span class="flow-size-tag"><span class="tm-ico tm-ico-py" style="width:14px;height:14px" data-run="py"></span>14px</span>
+        <span class="flow-size-tag"><span class="tm-ico tm-ico-py" style="width:20px;height:20px" data-run="py"></span>20px</span>
+        <span class="flow-size-tag"><span class="tm-ico tm-ico-py" style="width:28px;height:28px" data-run="py"></span>28px</span>
+        <span class="lab">↓ 状态行两态切换</span>
+        <div class="stat-mock">
+          <div class="stat-row">
+            <span class="tm-ico tm-ico-py run-ico" data-run="py"></span>
+            <span class="run-txt">运行 Python 代码…</span>
+            <span class="done-ico" data-ic="check"></span>
+            <span class="done-txt">运行完成</span>
+          </div>
+          <button type="button" class="tbtn stat-toggle">切到完成态</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card flow-card">
+      <div class="card-info">
+        <div class="card-title">
+          <span class="num">13</span>
+          <span class="name">读文件文档</span>
+          <span class="chip" data-cls="tm-ico-file" title="点击复制">tm-ico-file</span>
+          <span class="params">1.85s 循环 · 横线逐行写入 · 整页翻转</span>
+        </div>
+        <div class="desc">文件轮廓静止，三条横线自上而下逐行「写入」；写完后整页绕中轴翻转一次（背面空白），随后重新写入。对应读 / 写 / 编辑文件。</div>
+      </div>
+      <div class="flow-stage">
+        <span class="flow-size-tag"><span class="tm-ico tm-ico-file" style="width:14px;height:14px" data-run="file"></span>14px</span>
+        <span class="flow-size-tag"><span class="tm-ico tm-ico-file" style="width:20px;height:20px" data-run="file"></span>20px</span>
+        <span class="flow-size-tag"><span class="tm-ico tm-ico-file" style="width:28px;height:28px" data-run="file"></span>28px</span>
+        <span class="lab">↓ 状态行两态切换</span>
+        <div class="stat-mock">
+          <div class="stat-row">
+            <span class="tm-ico tm-ico-file run-ico" data-run="file"></span>
+            <span class="run-txt">读取文件中…</span>
+            <span class="done-ico" data-ic="check"></span>
+            <span class="done-txt">读取完成</span>
+          </div>
+          <button type="button" class="tbtn stat-toggle">切到完成态</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card flow-card">
+      <div class="card-info">
+        <div class="card-title">
+          <span class="num">14</span>
+          <span class="name">搜索放大镜</span>
+          <span class="chip" data-cls="tm-ico-search" title="点击复制">tm-ico-search</span>
+          <span class="params">2.1s 循环 · 三道短线扫过 · 手柄轻点</span>
+        </div>
+        <div class="desc">放大镜圆框静止，圈内三道短线从右向左错峰扫过，手柄在开头轻点一下。对应搜索 / 检索类工具。</div>
+      </div>
+      <div class="flow-stage">
+        <span class="flow-size-tag"><span class="tm-ico tm-ico-search" style="width:14px;height:14px" data-run="search"></span>14px</span>
+        <span class="flow-size-tag"><span class="tm-ico tm-ico-search" style="width:20px;height:20px" data-run="search"></span>20px</span>
+        <span class="flow-size-tag"><span class="tm-ico tm-ico-search" style="width:28px;height:28px" data-run="search"></span>28px</span>
+        <span class="lab">↓ 状态行两态切换</span>
+        <div class="stat-mock">
+          <div class="stat-row">
+            <span class="tm-ico tm-ico-search run-ico" data-run="search"></span>
+            <span class="run-txt">正在搜索…</span>
+            <span class="done-ico" data-ic="check"></span>
+            <span class="done-txt">搜索完成</span>
+          </div>
+          <button type="button" class="tbtn stat-toggle">切到完成态</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card flow-card">
+      <div class="card-info">
+        <div class="card-title">
+          <span class="num">15</span>
+          <span class="name">发送环转圈</span>
+          <span class="chip" data-cls="tm-fx-ring" title="点击复制">tm-fx-ring</span>
+          <span class="params">1.0s · linear 循环 · conic + mask</span>
+        </div>
+        <div class="desc">发送 / 提交按钮上的细环转圈，缺口在右上角。纯 CSS 单元素。</div>
+      </div>
+      <div class="flow-stage">
+        <span class="flow-size-tag"><span class="tm-fx-ring" style="--tm-ring-s:14px"></span>14px</span>
+        <span class="flow-size-tag"><span class="tm-fx-ring" style="--tm-ring-s:18px"></span>18px</span>
+        <span class="flow-size-tag"><span class="tm-fx-ring" style="--tm-ring-s:22px"></span>22px</span>
+      </div>
+    </div>
+
+  </div>
+
+  <h2 class="sec-title">C · 侧边栏 hover 图标套件（16 枚）</h2>
+  <p class="sec-sub">
+    鼠标移上去图标自己演一次（0.42–1.0s），部件分别运动：加号转身、三点依次跳、闹钟铃摆、表格线逐根长出……
+    每枚图标的动画时长对齐观察值，运动节奏参考公开观察结果，keyframes 与图形全部原创，图标来自项目自带 lucide（ISC）。
+  </p>
+  <div class="card flow-card">
+    <div id="navGrid" class="nav-grid"></div>
+    <div class="nav-actions">
+      <button type="button" class="tbtn" id="navReplay">重播全部</button>
+      <span class="lab">hover 触发 · 点击单个图标原地重播</span>
+    </div>
+  </div>
+
+  <section class="cand-sec" id="thinkCand">
+    <h2 class="sec-title">思考灯泡 · 内部动效候选（替换 Y↔I 变形）</h2>
+    <p class="sec-sub">玻璃外壳与底座都保持静止，只换灯泡内部的运动。当前保留 <b>D / F</b> 两个方案二选一，也可指参数微调。</p>
+    <div class="cand-grid">
+      <div class="cand">
+        <span class="tm-ico opt opt-D"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path class="oc-glass" d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
+          <path d="M9 18h6"/><path d="M10 22h4"/>
+          <path class="oc-ghost" d="M8 10h1.8l1.2-2.4 2 4.8 1.2-2.4H16"/>
+          <path class="oc-pulse" pathLength="100" d="M8 10h1.8l1.2-2.4 2 4.8 1.2-2.4H16"/>
+        </svg></span>
+        <b>D</b><span class="clab">脑波折线<br>心电图一道脉冲扫过</span>
+      </div>
+      <div class="cand">
+        <span class="tm-ico opt opt-F"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path class="oc-glass" d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
+          <path d="M9 18h6"/><path d="M10 22h4"/>
+          <path class="oc-wire" d="M12 13v-3M12 10 9.7 7.7M12 10l2.3-2.3"/>
+        </svg></span>
+        <b>F</b><span class="clab">双闪呼吸<br>灯丝不动，两连闪明暗</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="cand-sec" id="pyCand">
+    <h2 class="sec-title">Python 终端 · 内部动效候选</h2>
+    <p class="sec-sub">圆角方框保持静止，只换框内运动。第一个是当前 12 号现版，后面 A / C / D 为新方案，全部循环播放，直接按字母选。</p>
+    <div class="cand-grid">
+      <div class="cand">
+        <span class="tm-ico tm-ico-py"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2"/>
+          <path class="i-chev" d="m7 11 2-2-2-2"/>
+          <path class="i-cur" d="M11 13h4"/>
+        </svg></span>
+        <b>现版</b><span class="clab">扭头 + 眨眼<br>&gt; 摆头两次，_ 眨一下</span>
+      </div>
+      <div class="cand">
+        <span class="tm-ico optp optp-A"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2"/>
+          <path d="m7 8 1.5-1.5L7 5"/>
+          <g class="pc-rows">
+            <path class="pc-l pc-l1" d="M11 6.5h4.4"/>
+            <path class="pc-l pc-l2" d="M7 11h9"/>
+            <path class="pc-l pc-l3" d="M7 14h6.4"/>
+            <path class="pc-l pc-l4" d="M7 17h7.6"/>
+            <rect class="pc-cur" x="15.7" y="5.55" width="1.4" height="1.9" rx=".35" fill="currentColor" stroke="none"/>
+          </g>
+        </svg></span>
+        <b>A</b><span class="clab">逐行输出<br>命令与结果行依次打出</span>
+      </div>
+      <div class="cand">
+        <span class="tm-ico optp optp-C"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2"/>
+          <path class="pc-code" d="M7 8h7M7 10.8h9M7 13.6h6M7 16.4h8"/>
+          <rect class="pc-scan" x="6.3" y="7" width="11.4" height="1.2" rx=".6" fill="currentColor" stroke="none"/>
+        </svg></span>
+        <b>C</b><span class="clab">扫描线<br>亮线在代码行上反复扫</span>
+      </div>
+      <div class="cand">
+        <span class="tm-ico optp optp-D"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2"/>
+          <path d="m7 14 1.5-1.5L7 11"/>
+          <rect class="pc-eq pc-e1" x="10.2" y="11.5" width="1.7" height="5" rx=".85" fill="currentColor" stroke="none"/>
+          <rect class="pc-eq pc-e2" x="12.7" y="11.5" width="1.7" height="5" rx=".85" fill="currentColor" stroke="none"/>
+          <rect class="pc-eq pc-e3" x="15.2" y="11.5" width="1.7" height="5" rx=".85" fill="currentColor" stroke="none"/>
+        </svg></span>
+        <b>D</b><span class="clab">处理柱<br>三根小柱错峰起伏跳动</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="cand-sec" id="rocketCand">
+    <h2 class="sec-title">部署火箭 · C 推力震动（已定稿 · 已接入 inp-deploy / 部署进度卡）</h2>
+    <p class="sec-sub">lucide rocket 原笔画拆成整机 / 机身三笔 / 左下火焰，只动 transform、opacity。产品内两态：<b>未部署</b>时 hover 播放一次推力脉冲（1.05s）；<b>部署进行中</b>（任一 deploy_stage 为 running）火箭钮与进度卡头部以同一节奏无限循环。审查台内为持续循环演示，下方有 13/16/20px 尺寸走查。</p>
+    <div class="cand-grid">
+      <div class="cand">
+        <span class="tm-ico optr optr-C"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <g class="rc-all">
+            <g class="rc-body">
+              <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+              <path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"/>
+              <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"/>
+            </g>
+            <path class="rc-flame" d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09"/>
+          </g>
+        </svg></span>
+        <b>C</b><span class="clab">推力震动<br>整机高频后坐↔前冲，火焰快闪<br>（1.05s；hover 一次 / 进行中循环）</span>
+      </div>
+    </div>
+    <div class="rc-minirow">
+      <span class="rc-mini-lab">实际尺寸走查（13 / 16 / 20px）：</span>
+      <span class="rc-mgroup"><b>C</b>
+        <span class="tm-ico optr optr-C rc-m13"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g class="rc-all"><g class="rc-body"><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"/></g><path class="rc-flame" d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09"/></g></svg></span>
+        <span class="tm-ico optr optr-C rc-m16"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g class="rc-all"><g class="rc-body"><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"/></g><path class="rc-flame" d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09"/></g></svg></span>
+        <span class="tm-ico optr optr-C rc-m20"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g class="rc-all"><g class="rc-body"><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"/></g><path class="rc-flame" d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09"/></g></svg></span>
+      </span>
+    </div>
+  </section>
+
+  <section class="cand-sec" id="puzzleCand">
+    <h2 class="sec-title">插件 · 图标动效重构候选（侧栏 03）</h2>
+    <p class="sec-sub">puzzle 是单条闭合轮廓，无法拆笔画，四个新方案都做整体运动。第一个是现版，hover / 点击图标重播一次，直接按字母选。</p>
+    <div class="cand-grid">
+      <div class="cand">
+        <button type="button" class="optx optz optz-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path class="zp-all" d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z"/>
+        </svg></button>
+        <b>现版</b><span class="clab">整体扭身<br>正反向摆两下带回弹</span>
+      </div>
+      <div class="cand">
+        <button type="button" class="optx optz optz-A"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path class="zp-all" d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z"/>
+        </svg></button>
+        <b>A</b><span class="clab">按入嵌合<br>浮起后咔哒下压回弹</span>
+      </div>
+      <div class="cand">
+        <button type="button" class="optx optz optz-B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path class="zp-all" d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z"/>
+        </svg></button>
+        <b>B</b><span class="clab">挂入摇摆<br>绕顶部挂钩摆两下</span>
+      </div>
+      <div class="cand">
+        <button type="button" class="optx optz optz-C"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path class="zp-all" d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z"/>
+        </svg></button>
+        <b>C</b><span class="clab">翻面<br>绕竖轴水平翻转一次</span>
+      </div>
+      <div class="cand">
+        <button type="button" class="optx optz optz-D"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path class="zp-all" d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z"/>
+        </svg></button>
+        <b>D</b><span class="clab">咬合轻颤<br>左右错两格咔哒归位</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="cand-sec" id="globeCand">
+    <h2 class="sec-title">网站 · 图标动效重构候选（侧栏 10）</h2>
+    <p class="sec-sub">外圆 / 经线 / 赤道三部件重新编排。第一个是现版，hover / 点击图标重播一次，直接按字母选。</p>
+    <div class="cand-grid">
+      <div class="cand">
+        <button type="button" class="optx optg optg-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle class="gl-ring" cx="12" cy="12" r="10"/>
+          <path class="gl-mer" d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+          <path class="gl-eq" d="M2 12h20"/>
+        </svg></button>
+        <b>现版</b><span class="clab">经线翻面<br>外圈轻喘、赤道淡入</span>
+      </div>
+      <div class="cand">
+        <button type="button" class="optx optg optg-A"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle class="gl-d gl-d-ring" cx="12" cy="12" r="10"/>
+          <path class="gl-d gl-d-mer" d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+          <path class="gl-d gl-d-eq" d="M2 12h20"/>
+        </svg></button>
+        <b>A</b><span class="clab">描线成球<br>外圆经线赤道一笔笔画出</span>
+      </div>
+      <div class="cand">
+        <button type="button" class="optx optg optg-B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <g class="gl-base">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+            <path d="M2 12h20"/>
+          </g>
+          <g class="gl-orbit"><g class="gl-orbit-in"><circle cx="12" cy="2" r="1.4" fill="currentColor" stroke="none"/></g></g>
+        </svg></button>
+        <b>B</b><span class="clab">定位环绕<br>暗底经纬，亮点纵向绕一圈</span>
+      </div>
+      <div class="cand">
+        <button type="button" class="optx optg optg-C"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <g class="gl-spin">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+            <path d="M2 12h20"/>
+          </g>
+        </svg></button>
+        <b>C</b><span class="clab">整球翻面<br>整个地球绕竖轴翻一次</span>
+      </div>
+      <div class="cand">
+        <button type="button" class="optx optg optg-D"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle class="gl-ring" cx="12" cy="12" r="10"/>
+          <path class="gl-mer" d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+          <path class="gl-eq" d="M2 12h20"/>
+        </svg></button>
+        <b>D</b><span class="clab">织网收口<br>赤道经线先后长出外圆收口</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="cand-sec" id="panelCand">
+    <h2 class="sec-title">收起导航 / 展开导航 · 成对动效候选</h2>
+    <p class="sec-sub">静止时只有方框和竖条（没有箭头）；鼠标浮上去箭头才出现，方框竖条全程不动。图形用 lucide panel-left 系列、CSS 全部原创。每方案左按钮演「收起」、右按钮演「展开」，hover / 点击重播。</p>
+    <div class="cand-grid">
+      <div class="cand">
+        <div class="pn-pair">
+          <div class="pn-cell">
+            <button type="button" class="pn-ico opn-A pn-close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2"/>
+              <path class="pn-rail" d="M9 3v18"/>
+              <path class="pn-chv" d="m16 15-3-3 3-3"/>
+            </svg></button>
+            <span class="pn-dir">收起</span>
+          </div>
+          <div class="pn-cell">
+            <button type="button" class="pn-ico opn-A pn-open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2"/>
+              <path class="pn-rail" d="M9 3v18"/>
+              <path class="pn-chv" d="m14 9 3 3-3 3"/>
+            </svg></button>
+            <span class="pn-dir">展开</span>
+          </div>
+        </div>
+        <b>A</b><span class="clab">写出<br>箭头两笔顺着方向一笔画出</span>
+      </div>
+      <div class="cand">
+        <div class="pn-pair">
+          <div class="pn-cell">
+            <button type="button" class="pn-ico opn-B pn-close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2"/>
+              <path class="pn-rail" d="M9 3v18"/>
+              <path class="pn-chv" d="m16 15-3-3 3-3"/>
+            </svg></button>
+            <span class="pn-dir">收起</span>
+          </div>
+          <div class="pn-cell">
+            <button type="button" class="pn-ico opn-B pn-open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2"/>
+              <path class="pn-rail" d="M9 3v18"/>
+              <path class="pn-chv" d="m14 9 3 3-3 3"/>
+            </svg></button>
+            <span class="pn-dir">展开</span>
+          </div>
+        </div>
+        <b>B</b><span class="clab">弹入<br>小箭头在竖条旁放大弹出</span>
+      </div>
+      <div class="cand">
+        <div class="pn-pair">
+          <div class="pn-cell">
+            <button type="button" class="pn-ico opn-C pn-close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2"/>
+              <path class="pn-rail" d="M9 3v18"/>
+              <path class="pn-chv" d="m16 15-3-3 3-3"/>
+            </svg></button>
+            <span class="pn-dir">收起</span>
+          </div>
+          <div class="pn-cell">
+            <button type="button" class="pn-ico opn-C pn-open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2"/>
+              <path class="pn-rail" d="M9 3v18"/>
+              <path class="pn-chv" d="m14 9 3 3-3 3"/>
+            </svg></button>
+            <span class="pn-dir">展开</span>
+          </div>
+        </div>
+        <b>C</b><span class="clab">滑出<br>箭头从竖条背后横着滑出</span>
+      </div>
+      <div class="cand">
+        <div class="pn-pair">
+          <div class="pn-cell">
+            <button type="button" class="pn-ico opn-D pn-close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2"/>
+              <path class="pn-rail" d="M9 3v18"/>
+              <path class="pn-c1" d="m16 15-3-3"/>
+              <path class="pn-c2" d="m13 12 3-3"/>
+            </svg></button>
+            <span class="pn-dir">收起</span>
+          </div>
+          <div class="pn-cell">
+            <button type="button" class="pn-ico opn-D pn-open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2"/>
+              <path class="pn-rail" d="M9 3v18"/>
+              <path class="pn-c1" d="m14 9 3 3"/>
+              <path class="pn-c2" d="m17 12-3 3"/>
+            </svg></button>
+            <span class="pn-dir">展开</span>
+          </div>
+        </div>
+        <b>D</b><span class="clab">两笔跳出<br>箭头上下两段错峰小弹</span>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div>A 区用法：类名与按钮原有 class 并列挂在<strong>容器</strong>上，如 <code>&lt;button class="st-mini-btn tm-fx-wobble"&gt;</code>。</div>
+    <div>B 区用法：状态行图标挂 <code>tm-ico tm-ico-think|tm-ico-py|tm-ico-file|tm-ico-search</code>，结束后整体替换为静态完成图标。</div>
+    <div>C 区用法：侧栏按钮挂 <code>tm-nav tm-nav-N</code>，由 pointerenter 加 <code>.play</code> 触发一次。</div>
+    <div class="danger-note">评审规则：幅度 / 时长 / 延迟 / 曲线任一参数不满意，直接指编号（如「12 终端扭头角度减半」「16 加号转慢一点」），我只改这一个文件，定稿后再进项目。</div>
+    <div>合规说明：仅参考公开观察到的节奏数值与运动概念，CSS/图形均为原创重写，图标来自项目自带 lucide（ISC）；不含任何第三方原始代码、APNG 帧、SVG path 或图片素材。</div>
+  </footer>
+</div>
+
+<script>
+/* ════════ A 区：lucide 官方 path（24 viewBox, stroke=currentColor, width=2），与项目 lucide-react@1.46 同源 ════════ */
+const ICONS = {
+  plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  circlePlus: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>',
+  pencil: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>',
+  plug: '<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v3.1a6 6 0 0 1-.66 2.74l-1.39 2.32A2 2 0 0 1 14.27 17H9.73a2 2 0 0 1-1.68-.9l-1.39-2.32A6 6 0 0 1 6 11.1V8"/>',
+  copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  paperclip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+  home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+  save: '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>',
+  rotateCw: '<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>',
+  settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
+  unplug: '<path d="m19 5-3.07 3.07"/><path d="M14 7.07 9.7 2.7a2.41 2.41 0 0 0-3.4 0L2 7l5.1 5.1L3 16l2 2 4-4.1 5.2 5.2a2.4 2.4 0 0 0 3.4 0l4.3-4.3a2.4 2.4 0 0 0 0-3.4z"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  arrowUp: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+  bulb: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+  bell: '<path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/>',
+  star: '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
+  dots: '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+  check: '<polyline points="20 6 9 17 4 12"/>'
+};
+
+const FX = [
+  { n: '01', cls: 'tm-fx-wobble', name: '弹簧摇摆', params: '0.46s · spring 过冲',
+    desc: '整体先上跳 10%、顺势摆头 10°，再反向 -8° 甩回，像被指尖轻轻弹了一下。',
+    rec: ['Plus', 'Pencil', 'Plug'], icons: ['plus', 'pencil', 'plug', 'circlePlus'] },
+  { n: '02', cls: 'tm-fx-pop', name: 'Q 弹按压', params: '0.40s · spring 过冲',
+    desc: '先压扁到 78% 蓄力，再放大到 120% 回弹，软糖质感，偏可爱。',
+    rec: ['Copy', 'CirclePlus', 'Paperclip', 'Home', 'Save'], icons: ['copy', 'circlePlus', 'paperclip', 'home', 'save'] },
+  { n: '03', cls: 'tm-fx-turn', name: '转一圈', params: '0.60s · ease-out',
+    desc: '顺时针完整旋转 360°，末段减速收住。自带 :not(.dsh-spin)，loading 旋转中不接管。',
+    rec: ['RotateCw', 'Settings'], icons: ['rotateCw', 'settings'] },
+  { n: '04', cls: 'tm-fx-shake', name: '危险急抖', params: '0.44s · ease-in-out',
+    desc: '左右四次急促位移并带轻微歪头，幅度逐次衰减。专门给破坏性操作「示警」。',
+    rec: ['Trash2', 'Unplug', 'X（危险语境）'], icons: ['trash', 'unplug', 'x'] },
+  { n: '05', cls: 'tm-fx-nudge-up', name: '向上窜', params: '0.42s · spring',
+    desc: '沿箭头语义向上窜 32%，回弹 6% 收住。方向即含义：发送 / 上传 / 上级目录。',
+    rec: ['ArrowUp', 'Upload'], icons: ['arrowUp', 'upload'] },
+  { n: '06', cls: 'tm-fx-nudge-down', name: '向下沉', params: '0.42s · spring',
+    desc: '与上窜镜像，向下沉 32% 再回弹。下载、导出类的语义反馈。',
+    rec: ['Download'], icons: ['download'] },
+  { n: '07', cls: 'tm-fx-pulse', name: '心跳双跳', params: '0.50s · ease-in-out',
+    desc: '放大 120% → 微缩 → 再跳到 112%，两下「噗通」，给有情绪的图标：灵感、通知、收藏。',
+    rec: ['Lightbulb', 'Bell', 'Star'], icons: ['bulb', 'bell', 'star'] },
+  { n: '08', cls: 'tm-fx-dots', name: '三点波浪跳', params: '0.50s · 错峰 0.12s',
+    desc: 'Ellipsis 专用：中点先跳，左右两点延迟 0.12s 跟上，像图标冲你眨了下眼。',
+    rec: ['Ellipsis'], icons: ['dots'] },
+  { n: '09', cls: 'tm-fx-swing', name: '顶部钟摆', params: '0.55s · spring',
+    desc: '锚点在图标顶部 18% 处，整体像挂着一样左右甩动（16° / -13° / 6°）。铃铛/通知味。',
+    rec: ['Bell'], icons: ['bell'] }
+];
+
+function svgWrap(inner) {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+    + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+}
+const svgHTML = (name) => svgWrap(ICONS[name]);
+
+/* ────────────── B 区：状态图标内部结构（lucide 外壳 + 原创内部部件） ────────────── */
+const STATE_ICONS = {
+  think:
+    '<path class="i-glass" d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>'
+    + '<path d="M9 18h6"/><path d="M10 22h4"/>'
+    + '<g class="i-fy"><path d="M12 13.5v-2.9"/><path d="M12 10.6 10.3 8.9"/><path d="m12 10.6 1.7-1.7"/></g>'
+    + '<g class="i-fi"><path d="M12 13.6v-5.1"/><path d="M10.8 8.5h2.4"/><path d="M10.8 13.6h2.4"/></g>',
+  py:
+    '<rect width="18" height="18" x="3" y="3" rx="2"/>'
+    + '<path class="i-chev" d="m7 11 2-2-2-2"/>'
+    + '<path class="i-cur" d="M11 13h4"/>',
+  file:
+    '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/>'
+    + '<path d="M14 2v5a1 1 0 0 0 1 1h5"/>'
+    + '<path class="i-l i-l1" d="M10 9H8"/>'
+    + '<path class="i-l i-l2" d="M16 13H8"/>'
+    + '<path class="i-l i-l3" d="M16 17H8"/>',
+  search:
+    '<circle cx="11" cy="11" r="8"/>'
+    + '<path class="i-handle" d="m21 21-4.34-4.34"/>'
+    + '<g class="i-sweep">'
+    +   '<path class="sw1" d="M8.6 9.4h3.2"/>'
+    +   '<path class="sw2" d="M9.8 11.5h3.2"/>'
+    +   '<path class="sw3" d="M8.6 13.6h3.2"/>'
+    + '</g>'
+};
+
+/* ────────────── C 区：16 枚侧栏图标（部件加 nv-* 类，全部 lucide 官方 path） ────────────── */
+const NAV = [
+  { c: 1, label: '新会话', d: .42, svg:
+      '<path class="nv-bubble" d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/>'
+      + '<g class="nv-x"><path d="M8 12h8"/><path d="M12 8v8"/></g>' },
+  { c: 2, label: '我的', d: .83, svg:
+      '<circle cx="12" cy="12" r="10"/>'
+      + '<g class="nv-eyes"><path d="M15 10V9"/><path d="M9 10V9"/></g>'
+      + '<path class="nv-mouth" d="M16.472 15a6 6 0 0 1-8.943 0"/>' },
+  { c: 3, label: '插件', d: .5, svg:
+      '<path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z"/>' },
+  { c: 4, label: '定时任务', d: .42, svg:
+      '<circle cx="12" cy="13" r="8"/>'
+      + '<path class="nv-hands" d="M12 9v4l2 2"/>'
+      + '<g class="nv-bells"><path d="M5 3 2 6"/><path d="m22 6-3-3"/><path d="M6.38 18.7 4 21"/><path d="M17.64 18.67 20 21"/></g>' },
+  { c: 5, label: '更多', d: .5, svg:
+      '<circle class="nv-dot" cx="12" cy="12" r="1"/><circle class="nv-dot" cx="19" cy="12" r="1"/><circle class="nv-dot" cx="5" cy="12" r="1"/>' },
+  { c: 6, label: 'PPT', d: .5, svg:
+      '<g class="nv-board"><path d="M2 3h20"/><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"/></g>'
+      + '<path class="nv-stand" d="m7 21 5-5 5 5"/>' },
+  { c: 7, label: '子任务', d: 1, svg:
+      '<rect class="nv-node nv-node-t" x="9" y="2" width="6" height="6" rx="1"/>'
+      + '<rect class="nv-node nv-node-l" x="2" y="16" width="6" height="6" rx="1"/>'
+      + '<rect class="nv-node nv-node-r" x="16" y="16" width="6" height="6" rx="1"/>'
+      + '<path class="nv-link nv-link-1" d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/>'
+      + '<path class="nv-link nv-link-2" d="M12 12V8"/>' },
+  { c: 8, label: '深度研究', d: .67, svg:
+      '<path d="M6 18h8"/><path d="M3 22h18"/>'
+      + '<path d="M14 22a7 7 0 1 0 0-14h-1"/>'
+      + '<g class="nv-body"><path d="M9 14h2"/><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/></g>' },
+  { c: 9, label: '文档', d: .6, svg:
+      '<path class="nv-page" d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/>'
+      + '<path d="M14 2v5a1 1 0 0 0 1 1h5"/>'
+      + '<path class="nv-ln nv-ln1" d="M10 9H8"/><path class="nv-ln nv-ln2" d="M16 13H8"/><path class="nv-ln nv-ln3" d="M16 17H8"/>' },
+  { c: 10, label: '网站', d: .7, svg:
+      '<circle class="nv-ring2" cx="12" cy="12" r="10"/>'
+      + '<path class="nv-mer" d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>'
+      + '<path class="nv-eq" d="M2 12h20"/>' },
+  { c: 11, label: '表格', d: .6, svg:
+      '<rect class="nv-box" width="18" height="18" x="3" y="3" rx="2"/>'
+      + '<path class="nv-v nv-v1" d="M9 9v12"/><path class="nv-v nv-v2" d="M15 9v12"/>'
+      + '<path class="nv-hh nv-hh1" d="M3 9h18"/><path class="nv-hh nv-hh2" d="M3 15h18"/>' },
+  { c: 12, label: '画图', d: .7, svg:
+      '<rect width="18" height="18" x="3" y="3" rx="2"/>'
+      + '<circle class="nv-sun" cx="9" cy="9" r="2"/>'
+      + '<path class="nv-mtn" d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>' },
+  { c: 13, label: '工作台', d: .7, svg:
+      '<rect class="nv-screen" width="20" height="14" x="2" y="3" rx="2"/>'
+      + '<g class="nv-stand"><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></g>' },
+  { c: 14, label: '代码', d: .6, svg:
+      '<rect width="18" height="18" x="3" y="3" rx="2"/>'
+      + '<path class="nv-chev" d="m7 11 2-2-2-2"/>'
+      + '<path class="nv-dash" d="M11 13h4"/>' },
+  { c: 15, label: '猫咪', d: .8, svg:
+      '<path class="nv-head" d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.44C21 17.9 16.97 21 12 21s-9-3-9-7.56c0-1.25.5-2.4 1-3.44 0 0-1.89-6.42-.5-7 1.39-.58 4.72.23 6.5 2.23A9.04 9.04 0 0 1 12 5Z"/>'
+      + '<g class="nv-eyes"><path d="M8 14v.5"/><path d="M16 14v.5"/></g>'
+      + '<path class="nv-nose" d="M11.25 16.25h1.5L12 17l-.75-.75Z"/>' },
+  { c: 16, label: '新项目', d: .7, svg:
+      '<path class="nv-bag" d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>'
+      + '<g class="nv-x"><path d="M12 10v6"/><path d="M9 13h6"/></g>' }
+];
+
+/* ────────────── 渲染 A 区 ────────────── */
+const grid = document.getElementById('grid');
+grid.innerHTML = FX.map(f => `
+  <div class="card">
+    <div class="card-info">
+      <div class="card-title">
+        <span class="num">${f.n}</span>
+        <span class="name">${f.name}</span>
+        <span class="chip" data-cls="${f.cls}" title="点击复制">${f.cls}</span>
+        <span class="params">${f.params}</span>
+      </div>
+      <div class="desc">${f.desc}</div>
+      <div class="rec">适用：${f.rec.map(r => `<code>${r}</code>`).join('')}</div>
+    </div>
+    <div class="stage">
+      ${f.icons.map(i => `<button type="button" class="demo-btn ${f.cls}" title="点击重播" aria-label="${f.name}">${svgHTML(i)}</button>`).join('')}
+    </div>
+  </div>
+`).join('');
+
+/* ────────────── 渲染 B 区状态图标 + check 注入 ────────────── */
+document.querySelectorAll('[data-run]').forEach(el => { el.innerHTML = svgWrap(STATE_ICONS[el.dataset.run]); });
+document.querySelectorAll('[data-ic]').forEach(el => { el.innerHTML = svgHTML(el.dataset.ic); });
+
+/* 3×3 波浪点装配 */
+const WAVE_PHASES = ['', 'w1', 'w2', 'w1', 'w3', 'w3', 'w2', 'w3', 'w4'];
+document.querySelectorAll('.tm-fx-wave').forEach(w => {
+  w.innerHTML = WAVE_PHASES.map(p => `<i${p ? ` class="${p}"` : ''}></i>`).join('');
+});
+
+/* 状态行 运行 / 完成 切换 */
+document.querySelectorAll('.stat-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const row = btn.closest('.stat-mock').querySelector('.stat-row');
+    const done = row.classList.toggle('done');
+    btn.textContent = done ? '切回运行态' : '切到完成态';
+  });
+});
+
+/* ────────────── 渲染 C 区侧栏套件 ────────────── */
+const navGrid = document.getElementById('navGrid');
+navGrid.innerHTML = NAV.map(n => `
+  <div class="nav-cell">
+    <button type="button" class="nav-btn tm-nav tm-nav-${n.c}" title="${n.label} · ${n.d}s" aria-label="${n.label}">
+      ${svgWrap(n.svg)}
+    </button>
+    <span class="nav-label">${n.label}</span>
+  </div>
+`).join('');
+
+/* .play 触发：pointerenter 播放一次，animationend 收尾；点击原地重播 */
+const playNav = (btn) => {
+  btn.classList.remove('play');
+  void btn.offsetWidth;
+  btn.classList.add('play');
+};
+/* 每个按钮：pointerenter 播放、点击重播；最后一条 animationend 冒泡后清 .play */
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  let timer = 0;
+  btn.addEventListener('pointerenter', () => playNav(btn));
+  btn.addEventListener('click', () => playNav(btn));
+  btn.addEventListener('animationend', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => btn.classList.remove('play'), 60);
+  });
+});
+document.getElementById('navReplay').addEventListener('click', () => {
+  document.querySelectorAll('.nav-btn').forEach((btn, i) => {
+    setTimeout(() => playNav(btn), i * 45);
+  });
+});
+
+/* D 区候选触发：globe 组入场动画有"从无到有"过程，加载即播并常驻 .play 保终态，hover/点击重播；
+   puzzle 组与导航收展组播完即移除 .play，回到自然静态（导航组必须回原态，否则两态会错位） */
+const replay = (el) => {
+  el.classList.remove('play');
+  void el.offsetWidth;
+  el.classList.add('play');
+};
+document.querySelectorAll('.optx.optg').forEach(btn => {
+  btn.classList.add('play');
+  btn.addEventListener('pointerenter', () => replay(btn));
+  btn.addEventListener('click', () => replay(btn));
+});
+document.querySelectorAll('.optx.optz').forEach(btn => {
+  let timer = 0;
+  btn.addEventListener('pointerenter', () => replay(btn));
+  btn.addEventListener('click', () => replay(btn));
+  btn.addEventListener('animationend', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => btn.classList.remove('play'), 120);
+  });
+});
+/* 导航收展：悬停期间箭头保持显示（.play 不移除），移出按钮才收起；点击原地重播 */
+document.querySelectorAll('.pn-ico').forEach(btn => {
+  btn.addEventListener('pointerenter', () => replay(btn));
+  btn.addEventListener('click', () => replay(btn));
+  btn.addEventListener('pointerleave', () => btn.classList.remove('play'));
+});
+
+/* ────────────── 全局：类名点击复制 / A 区点击重播 ────────────── */
+document.addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if (chip) {
+    navigator.clipboard.writeText(chip.dataset.cls).then(() => {
+      const old = chip.textContent;
+      chip.textContent = '✓ 已复制';
+      chip.classList.add('copied');
+      setTimeout(() => { chip.textContent = old; chip.classList.remove('copied'); }, 1100);
+    });
+    return;
+  }
+  const dbtn = e.target.closest('.demo-btn');
+  if (dbtn) dbtn.getAnimations({ subtree: true }).forEach(a => { a.cancel(); a.play(); });
+});
+
+/* 尺寸切换 */
+const bReview = document.getElementById('sizeReview');
+const bReal = document.getElementById('sizeReal');
+bReview.addEventListener('click', () => {
+  document.body.classList.remove('size-real');
+  bReview.classList.add('on'); bReal.classList.remove('on');
+});
+bReal.addEventListener('click', () => {
+  document.body.classList.add('size-real');
+  bReal.classList.add('on'); bReview.classList.remove('on');
+});
+</script>
+</body>
+</html>

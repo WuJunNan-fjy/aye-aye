@@ -1,0 +1,285 @@
+/* ============================================================
+ * Aye v2 modelselect.css —— 1:1 复刻 dsh ModelSelect.module.css
+ * Source: packages/client/ui-model-selection/src/client/ModelSelect.module.css
+ * 说明：dsh 用 CSS Module 自动哈希类名；v2 为全局 CSS，统一加 ms- 前缀。
+ * 行为/数值与源完全一致（两级菜单、向上弹层、键盘导航）。
+ * ============================================================ */
+
+.ms-root {
+  position: relative;
+  min-width: 0;
+}
+
+/* ToggleButton：13/20 medium secondary 标签、4px gap、12px caption chevron；
+   28px chip 高度与同排 Plan / Read-only 选择器一致。 */
+.ms-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 220px;
+  height: 28px;
+  padding: 0 4px 0 8px;
+  border: none;
+  border-radius: 24px;
+  outline: none;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.ms-trigger:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  transition-duration: var(--dsw-motion-in);
+}
+
+.ms-trigger:focus-visible {
+  box-shadow: 0 0 0 2px var(--dsw-alias-border-l3);
+}
+
+.ms-trigger:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
+.ms-triggerLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Effort 值跟在模型名旁边（与模型名同字号，caption 色调）。 */
+.ms-triggerEffort {
+  flex: 0 0 auto;
+  color: var(--dsw-alias-label-caption);
+}
+
+.ms-chevron {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  color: var(--dsw-alias-label-caption);
+  transition: transform var(--dsw-motion-panel) var(--dsw-ease-standard);
+}
+
+.ms-chevronOpen {
+  transform: rotate(180deg);
+}
+
+.ms-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  width: min(240px, calc(100vw - 32px));
+  max-height: min(360px, calc(100vh - 96px));
+  overflow: hidden;
+  padding: 4px;
+  border: 1px solid var(--dsw-alias-border-inverted);
+  border-radius: 12px;
+  background: var(--dsw-specific-menu);
+  box-shadow: var(--dsw-shadow-lv3);
+  color: var(--dsw-alias-label-primary);
+}
+
+.ms-status,
+.ms-empty {
+  padding: 10px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.ms-error,
+.ms-warning {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.ms-warning {
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-state-warn-label);
+}
+
+.ms-retry {
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ms-groups {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.ms-group + .ms-group {
+  margin-top: 4px;
+}
+
+.ms-groupTitle {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 5px 8px 3px;
+  background: var(--dsw-specific-menu);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+}
+
+.ms-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 10px;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.ms-option:hover:not(:disabled),
+.ms-option:focus-visible {
+  background: var(--dsw-alias-interactive-bg-hover);
+  transition-duration: var(--dsw-motion-in);
+}
+
+/* 选中标记是尾随的 check，而不是底色填充——与 Menu 原语的选中一致。 */
+.ms-selected {
+  background: transparent;
+}
+
+.ms-option:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
+.ms-optionCopy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ms-modelName {
+  overflow: hidden;
+  color: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ms-description {
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ms-check {
+  display: grid;
+  place-items: center;
+  flex: 0 0 18px;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* 两级 root 单元格：40px 行、10px 侧 padding、8px gap、10px 圆角；
+   14/22 标签 primary、值 tertiary、右 chevron 钻取子列表。 */
+.ms-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  line-height: 22px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.ms-cell:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  transition-duration: var(--dsw-motion-in);
+}
+
+.ms-cellLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ms-cellValue {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.ms-cellChevron {
+  flex: 0 0 auto;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* 选择被拒时的轻量提示（dsh primitives Toast 的落地点）。 */
+.ms-toast {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 48px);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  padding: 7px 10px;
+  border: 1px solid var(--dsw-alias-border-inverted);
+  border-radius: 8px;
+  background: var(--dsw-specific-menu);
+  box-shadow: var(--dsw-shadow-lv3);
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+  line-height: 18px;
+}

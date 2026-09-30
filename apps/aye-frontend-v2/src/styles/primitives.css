@@ -1,0 +1,204 @@
+/* ============================================================
+ * Aye v2 primitives.css —— 1:1 复刻 dsh ui-primitives 组件级样式
+ * Source: packages/client/ui-primitives/src/*.module.css
+ *   - Button.module.css   (.button/.md/.sm/.primary/.ghost/.outline/.toolbar)
+ *   - Input.module.css    (.wrap/.input/.icon)
+ *   - Pill.module.css     (.pill/.interactive/.active)
+ * ============================================================ */
+
+/* ── Button (胶囊体系: md h36 / sm h28) ── */
+.dsh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: none;
+  border-radius: 18px;
+  cursor: pointer;
+  font-family: var(--dsw-font-family);
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  padding: 0 14px;
+  height: 36px; /* md */
+  transition: background-color var(--dsw-motion-in) var(--dsw-ease-standard),
+    border-color var(--dsw-motion-in) var(--dsw-ease-standard),
+    color var(--dsw-motion-in) var(--dsw-ease-standard),
+    box-shadow var(--dsw-motion-in) var(--dsw-ease-standard),
+    transform var(--dsw-motion-press) var(--dsw-ease-standard);
+  user-select: none;
+}
+
+.dsh-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.dsh-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.dsh-btn-sm {
+  height: 28px;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 0 10px;
+  border-radius: 14px;
+}
+
+.dsh-btn-primary {
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-foreground);
+}
+.dsh-btn-primary:hover:not(:disabled) {
+  background: var(--dsw-alias-button-primary-hover);
+}
+
+.dsh-btn-ghost:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+.dsh-btn-ghost:active:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+/* Dialog Cancel / secondary bordered capsule —— transparent fill + 1px border */
+.dsh-btn-outline {
+  border: 1px solid var(--dsw-alias-border-l2);
+  background: transparent;
+}
+.dsh-btn-outline:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.dsh-btn-toolbar {
+  background: var(--dsw-alias-button-tool-bar-fill);
+}
+.dsh-btn-toolbar:hover:not(:disabled) {
+  background: var(--dsw-alias-button-tool-bar-hover);
+}
+
+/* Icon button (square 28x28, r=6) —— NOT a capsule, elevated surfaces icon-only */
+.dsh-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  transition: background-color var(--dsw-motion-in) var(--dsw-ease-standard),
+    color var(--dsw-motion-in) var(--dsw-ease-standard);
+  flex-shrink: 0;
+}
+
+/* 图标 hover 微动：上浮 1px + 轻放大（spring 轻回弹），按下回缩 */
+.dsh-icon-btn > svg,
+.dsh-icon-btn > :where(.anticon) {
+  transition: transform var(--dsw-motion-in) var(--dsw-ease-spring);
+}
+.dsh-icon-btn:hover:not(:disabled) > svg,
+.dsh-icon-btn:hover:not(:disabled) > :where(.anticon) {
+  transform: translateY(-1px) scale(1.06);
+}
+.dsh-icon-btn:active:not(:disabled) > svg,
+.dsh-icon-btn:active:not(:disabled) > :where(.anticon) {
+  transform: scale(0.92);
+  transition-duration: var(--dsw-motion-press);
+}
+
+.dsh-icon-btn:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.dsh-icon-btn.danger:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.dsh-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Input (32h, 8r, 1px border l2, focus brand) ── */
+.dsh-input-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  flex: 1;
+  min-width: 0;
+  transition: border-color var(--dsw-motion-in) var(--dsw-ease-standard),
+    box-shadow var(--dsw-motion-in) var(--dsw-ease-standard);
+}
+
+.dsh-input-wrap:focus-within {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.dsh-input-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-alias-label-tertiary);
+  flex-shrink: 0;
+}
+
+.dsh-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.dsh-input::placeholder {
+  color: var(--dsw-alias-label-dimmed);
+}
+
+/* ── Pill (h24, r=12, base bg-layer-2 label-secondary; active 高亮阴影) ── */
+.dsh-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-bg-layer-2);
+  white-space: nowrap;
+}
+
+.dsh-pill.interactive {
+  cursor: pointer;
+  transition: background-color var(--dsw-motion-in) var(--dsw-ease-standard),
+    color var(--dsw-motion-in) var(--dsw-ease-standard),
+    box-shadow var(--dsw-motion-in) var(--dsw-ease-standard);
+}
+.dsh-pill.interactive:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.dsh-pill.interactive:active { transform: scale(0.97); transition-duration: var(--dsw-motion-press); }
+
+.dsh-pill.active {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-button-ghost-active-fill);
+  box-shadow: inset 0 0 0 1px var(--dsw-alias-button-ghost-active-border);
+}

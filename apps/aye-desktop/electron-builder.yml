@@ -1,0 +1,57 @@
+appId: com.aye.app
+productName: Aye
+copyright: Copyright © 2026 Aye
+asar: true
+# 动态更新源（electron-updater generic provider）：
+# 打包时会把此地址写进 resources/app-update.yml，客户端启动后 GET <url>/latest.yml 比对版本。
+# ⚠️ 占位地址，发版前替换为真实静态目录（nginx/对象存储均可），并把每次构建生成的
+#    latest.yml + 安装包（Aye Setup x.y.z.exe 及其 .blockmap）一并上传到该目录。
+publish:
+  - provider: generic
+    url: https://update.example.com/aye/win/
+    channel: latest
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**/*
+  - build/icon.ico
+  - build/icon.png
+extraResources:
+  # 后端 jar 与 jlink 运行时由 scripts/prepare-backend.cjs 生成，只走 extraResources（asar 外，java 进程可直接读）
+  - from: build/backend
+    to: backend
+    filter:
+      - '**/*'
+  - from: build/runtime
+    to: runtime
+    filter:
+      - '**/*'
+  - from: build/icon.ico
+    to: build/icon.ico
+  - from: build/icon.png
+    to: build/icon.png
+win:
+  target:
+    - nsis
+  icon: build/icon.ico
+mac:
+  target:
+    - dmg
+  icon: build/icon.icns
+linux:
+  target:
+    - AppImage
+  icon: build/icon.png
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Aye
+  uninstallDisplayName: Aye
+  deleteAppDataOnUninstall: false
+  # 安装/卸载前清理驻留的 Aye 与内置 java 进程，避免 server.jar 文件锁
+  include: build/installer.nsh

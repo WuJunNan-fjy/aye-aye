@@ -1,0 +1,172 @@
+/* ============================================================
+ * TodoDock.css —— 待办码头（1:1 复刻 dsh TodoPanel.module.css）
+ * composer 座顶部的计划横条：12px 圆角、折叠 36px 行、12px 侧padding、
+ * 14px 三级引导 glyph。宽高对齐 Aye 736 composer 列。
+ * ============================================================ */
+
+.td-root {
+  box-sizing: border-box;
+  flex: none;
+  overflow: hidden;
+  width: 100%;
+  max-width: 736px;
+  margin: 0 auto 8px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 12px;
+  background: var(--dsw-specific-tip);
+  /* 抬升面：清单在卡内滚动，滑块取 l2 高度 token（dsh scrollbar 重绑定契约）。 */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+.td-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 12px;
+}
+
+/* 全部完成/取消后：卡片保留为可点开的极简摘要，整体弱化一档。 */
+.td-root[data-done='true'] {
+  opacity: 0.62;
+  transition: opacity 0.25s ease;
+}
+
+.td-root[data-done='true']:hover,
+.td-root[data-done='true']:focus-within {
+  opacity: 1;
+}
+
+.td-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.td-header:focus-visible {
+  outline: 2px solid var(--dsw-alias-label-secondary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.td-lead {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.td-title {
+  flex: none;
+  font-size: 13px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.td-progress {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--dsw-alias-label-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-chevron {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.td-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.td-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* 状态 glyph 共享 14×14 画板，16×16 格座居中。 */
+.td-glyphCell {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+}
+
+.td-glyph {
+  display: block;
+}
+
+.td-glyphCompleted {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.td-glyphPending {
+  color: var(--dsw-alias-label-caption);
+}
+
+.td-glyphProgress {
+  color: var(--dsw-alias-state-business-primary);
+  animation: td-progress-spin 1s linear infinite;
+}
+
+.td-glyphCancelled {
+  display: grid;
+  place-items: center;
+  color: var(--dsw-alias-label-caption);
+}
+
+@keyframes td-progress-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 单行省略，不提供行内展开（dsh figma 契约）。 */
+.td-content {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-item[data-status='completed'] .td-content {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.td-item[data-status='cancelled'] .td-content {
+  color: var(--dsw-alias-label-caption);
+  text-decoration: line-through;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .td-glyphProgress {
+    animation: none;
+  }
+}

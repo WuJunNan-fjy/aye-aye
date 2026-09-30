@@ -1,0 +1,1437 @@
+/* ============================================================
+ * Aye v2 conversation.css —— 对话页装配
+ * Source: packages/client/ui-conversation/src/client/skeleton/
+ *   - ConversationRoot.module.css（消息列 + 空态 hero 组合）
+ *   - HeroShell.module.css（hero 头条 + 辉光）
+ * 类名前缀: conv-
+ * ============================================================ */
+
+.conv-root {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+/* 主内容列：与应用侧栏相邻，分隔线由侧栏右边线承担 */
+.conv-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  background: var(--dsw-alias-bg-base);
+}
+
+/* 顶部条：仅终端/文件面板开关（右对齐）。
+   主机/会话身份与会话操作已收敛到左侧会话树。 */
+.conv-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 6px 10px;
+}
+
+/* 输入条 trailing 区：执行模式切换器 + 模型座 */
+.conv-trailing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 滚动容器同时承载消息流与 composer 座（dsh scrollBody）。 */
+.conv-flow {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* 侧距由滚动容器统一承担；底部外距由 inp-root 的 8px 承担 */
+  padding: 4px 16px 0;
+}
+
+/* ---------- composer 座：输入框单实例的两种相位 ---------- */
+/* active：sticky 钉在滚动容器底部；hero：随头部整体居中（见下方相位规则）。 */
+.conv-composer-seat {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  flex-shrink: 0;
+  /* 不透明座：待办码头 / 选择项目 / 输入卡同属一个实体栈，消息滚动时从座后消失，
+     不允许文字从卡片间隙透出（底色与 conv-main 一致，顶部 14px 渐隐遮罩负责过渡）。 */
+  background: var(--dsw-alias-bg-base);
+}
+
+/* 消息滚到输入卡后面时的渐隐遮罩（dsh composerSeat top mask），
+   负向 16px 抵消 conv-flow 的侧距，使遮罩铺满整列。 */
+.conv-composer-seat::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  right: -16px;
+  bottom: 100%;
+  height: 14px;
+  background: linear-gradient(to top, var(--dsw-alias-bg-base), transparent);
+  pointer-events: none;
+}
+
+/* inp-root 入座后不再自带侧距（conv-flow 已有 16px），保证输入卡与 736 消息列同宽对齐。 */
+.conv-composer-seat .inp-root {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* active：消息区对应 dsh scrollBody 内的 viewArea（flex:1 0 auto + min-height:auto）。
+   内容不足一屏（如首条消息刚发出）时消息区吃掉剩余高度，把 composer 顶到视口底部；
+   内容超出时按自然高度撑开滚动，composer 再靠上面的 sticky bottom:0 粘底。
+   仅靠 sticky 做不到前者——无溢出可滚时它只会停在内容流的自然位置（输入框紧跟 Working 行）。 */
+.wb-ai-area[data-phase='active'] .msg-flow {
+  flex: 1 0 auto;
+  min-height: auto;
+  /* 最后一条消息（含生成中的 Working… 行）与吸底输入卡之间的呼吸距离。 */
+  padding-bottom: 20px;
+}
+
+/* hero：标题 + 大卡在滚动容器内整体垂直居中，栈底留 32px 做视觉上浮（dsh composerStack）。 */
+.wb-ai-area[data-phase='hero'] .conv-flow {
+  justify-content: center;
+}
+
+.wb-ai-area[data-phase='hero'] .conv-composer-seat {
+  position: relative;
+  padding-bottom: 32px;
+}
+
+.wb-ai-area[data-phase='hero'] .conv-composer-seat::before {
+  display: none;
+}
+
+.wb-ai-area[data-phase='hero'] .inp-root {
+  position: relative;
+  z-index: 1;
+}
+
+/* settling：历史会话消息未就绪时整座隐藏，避免空 hero 闪一下再跳底部（dsh settling）。 */
+.wb-ai-area[data-phase='settling'] .conv-composer-seat {
+  visibility: hidden;
+}
+
+/* ---------- 输入区主机未连接预警条（HostConnectBar，C 方案） ---------- */
+/* 与输入卡同宽（736）居中；橙色左边条，发送前先于 AI 发现阻断。 */
+.conv-hostbar {
+  width: 100%;
+  max-width: 736px;
+  margin: 0 auto 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-left: 3px solid var(--dsw-alias-state-warn-label);
+  border-radius: 8px;
+  /* 极淡琥珀底：阻断信息要比普通灰条更先被看到（深色下取 amber-900 暗面） */
+  background: var(--dsw-alias-state-warn-tertiary);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.conv-hostbarRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.conv-hostbarIcon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--dsw-alias-state-warn-label);
+}
+
+.conv-hostbarText {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 18px;
+  /* 阻断提示用一级文字色，浅灰 secondary 在琥珀面上对比不足 */
+  color: var(--dsw-alias-label-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 方块小圆角（用户偏好），覆盖 dsh-btn-sm 胶囊 r14。 */
+.conv-hostbarBtn {
+  flex: none;
+  border-radius: 8px;
+}
+
+.conv-hostbarForm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.conv-hostbarPwd {
+  flex: 1;
+  min-width: 180px;
+  box-sizing: border-box;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-base);
+  font-size: 12px;
+  color: var(--dsw-alias-label-primary);
+  outline: none;
+  transition: border-color var(--dsw-motion-in) var(--dsw-ease-standard), box-shadow var(--dsw-motion-in) var(--dsw-ease-standard);
+}
+
+.conv-hostbarPwd::placeholder {
+  color: var(--dsw-alias-label-dimmed);
+}
+
+.conv-hostbarPwd:focus {
+  border-color: var(--dsw-alias-label-secondary);
+}
+
+.conv-hostbarPwd:disabled {
+  opacity: 0.5;
+}
+
+.conv-hostbarError {
+  flex: 1 0 100%;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-state-error-primary);
+  word-break: break-all;
+}
+
+/* ---------- 空态 hero：品牌标 + 标题 + 价值主张 + 场景 chip，整体居中 ---------- */
+.conv-hero-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+/* 品牌标：品牌色柔光投影，克制不闪烁 */
+.conv-heroBrand {
+  display: inline-flex;
+  margin-bottom: 14px;
+  filter: drop-shadow(0 8px 20px var(--tm-brand-tint));
+}
+
+.conv-heroGlow {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  transform: translate(-50%, -50%);
+  width: 640px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--tm-brand-tint), transparent 72%);
+  filter: blur(36px);
+  pointer-events: none;
+}
+
+.conv-heroTitle {
+  margin: 0;
+  /* TRAE 式大标题：字号加重、字重提到 700 */
+  font-size: 30px;
+  line-height: 38px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* 价值主张副标题 */
+.conv-heroSub {
+  margin: 7px 0 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* 场景入口 chip：淡边胶囊，hover 轻抬 + 品牌色描边与图标 */
+.conv-heroChips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.conv-heroChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border: 1px solid var(--dsw-alias-border-l2-darkmode-thin);
+  border-radius: 999px;
+  background: var(--dsw-specific-input-major);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+  box-shadow: var(--dsw-shadow-lv1);
+  transition:
+    var(--dsw-t-feedback),
+    transform var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.conv-heroChip:hover {
+  color: var(--dsw-alias-label-primary);
+  border-color: color-mix(in srgb, var(--tm-brand-primary) 38%, var(--dsw-alias-border-l3));
+  background: var(--dsw-alias-interactive-bg-hover);
+  transform: translateY(-1px);
+  transition-duration: var(--dsw-motion-in);
+}
+
+.conv-heroChip:active {
+  transform: translateY(0);
+  transition-duration: var(--dsw-motion-press);
+}
+
+.conv-heroChipIcon {
+  flex: none;
+  color: var(--tm-brand-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .conv-heroChip,
+  .conv-heroChip:hover,
+  .conv-heroChip:active {
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ============================================================
+ * 左右分栏工作台（对齐 v1 workbench）：
+ *   左 wb-ai-area（AI 对话）+ 右 wb-right-area（终端/文件 Tab）
+ * ============================================================ */
+
+.conv-main {
+  gap: 8px;
+}
+
+/* 左右分栏容器：占据 topbar 之外的剩余高度 */
+.wb-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* 左：AI 对话列（消息流 + 输入条） */
+.wb-ai-area {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.wb-layout-right-hidden .wb-ai-area {
+  width: 100%;
+}
+
+/* 左列内消息流：占满输入条以上空间 */
+.wb-ai-area .conv-flow {
+  flex: 1;
+  min-height: 0;
+}
+
+/* 右：终端/文件面板 */
+.wb-right-area {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 320px;
+  max-width: 60%;
+  overflow: hidden;
+  border-left: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-base);
+}
+
+/* 分栏拖拽条 */
+.panel-resizer {
+  flex: 0 0 auto;
+  background: transparent;
+  z-index: 5;
+}
+.panel-resizer.vertical {
+  width: 5px;
+  cursor: col-resize;
+  margin-left: -2px;
+  margin-right: -3px;
+}
+.panel-resizer.vertical:hover,
+.panel-resizer.vertical:active {
+  background: var(--dsw-alias-brand-primary);
+  opacity: 0.5;
+}
+
+/* 右侧工具栏 */
+.wb-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 10px;
+  background: var(--dsw-alias-bg-layer-1);
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+  flex-shrink: 0;
+}
+
+.wb-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.wb-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--dsw-motion-out) var(--dsw-ease-standard),
+    color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+.wb-tab-btn:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+  transition-duration: var(--dsw-motion-in);
+}
+.wb-tab-btn.active {
+  background: var(--dsw-specific-sidebar-nav-item-active);
+  color: var(--dsw-alias-label-primary);
+}
+
+.wb-toolbar-center {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+}
+
+.wb-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.wb-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  font-size: 13px;
+  transition:
+    background-color var(--dsw-motion-out) var(--dsw-ease-standard),
+    color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+.wb-icon-btn > svg {
+  transition: transform var(--dsw-motion-in) var(--dsw-ease-spring);
+}
+.wb-icon-btn:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+  transition-duration: var(--dsw-motion-in);
+}
+.wb-icon-btn:hover > svg { transform: translateY(-1px) scale(1.06); }
+.wb-icon-btn:active > svg {
+  transform: scale(0.92);
+  transition-duration: var(--dsw-motion-press);
+  transition-timing-function: var(--dsw-ease-standard);
+}
+
+/* 终端/文件面板开合动效图标（pn 套件）：span 外壳顶替原直接 svg，
+   尺寸 1em 跟随按钮字号（两处均为 13px），上浮/按压反馈与原图标一致 */
+.conv-topbar .dsh-icon-btn > .pn-ico,
+.wb-icon-btn > .pn-ico {
+  width: 1em;
+  height: 1em;
+  transition: transform var(--dsw-motion-in) var(--dsw-ease-spring);
+}
+.conv-topbar .dsh-icon-btn:hover:not(:disabled) > .pn-ico {
+  transform: translateY(-1px) scale(1.06);
+}
+.conv-topbar .dsh-icon-btn:active:not(:disabled) > .pn-ico,
+.wb-icon-btn:active > .pn-ico {
+  transform: scale(0.92);
+  transition-duration: var(--dsw-motion-press);
+  transition-timing-function: var(--dsw-ease-standard);
+}
+.wb-icon-btn:hover > .pn-ico { transform: translateY(-1px) scale(1.06); }
+
+/* 已连接：品牌青蓝（与发送动作同源的"可执行"语义），不再占通用成功绿 */
+.wb-conn-btn.connected { color: var(--tm-brand-primary); }
+
+.wb-font-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  transition: background-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+.wb-font-btn:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  transition-duration: var(--dsw-motion-in);
+}
+.wb-font-a { font-family: var(--ds-font-family-code, monospace); }
+.wb-font-a-sm { font-size: 12px; }
+.wb-font-a-lg { font-size: 16px; }
+
+/* Tab 内容区 */
+.wb-tab-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.wb-tab-pane {
+  flex: 1;
+  min-height: 0;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.wb-tab-pane.active {
+  display: flex;
+}
+
+/* 右侧面板内的终端/文件面板去边框（贴住面板边缘） */
+.wb-right-area .ssh-terminal-panel,
+.wb-right-area .server-file-tree {
+  border: none;
+  border-radius: 0;
+  height: 100%;
+}
+
+.wb-right-area .ssh-terminal-panel .terminal-wrap,
+.wb-right-area .ssh-terminal-panel .terminal-container {
+  border-radius: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * 交互卡片（人工确认 / ask_user 主动询问）—— AgentLoop 暂停等用户回传时渲染，
+ * 与 ToolCard 占用同一条时间线宽度，等待态带扫光。
+ * ------------------------------------------------------------------------- */
+/* 本轮已结束（完成/出错/停止）仍未处理的交互卡：就地置灰、不可再操作 */
+.ic-collapsed-ended {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.ic-collapsed-ended:hover {
+  background: transparent;
+}
+
+.ic-root {
+  border: 1px solid var(--dsw-alias-border-l2-darkmode-thin);
+  border-radius: 20px;
+  padding: 0;
+  /* 与上方 Think / 工具行留一点呼吸间隔（相邻 margin 取大值，不会叠加）。 */
+  margin-top: 6px;
+  margin-bottom: 12px;
+  background: var(--dsw-specific-input-major);
+  box-shadow: var(--dsw-shadow-lv2);
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+}
+
+/* 审批卡：整圈琥珀色描边（dsh ApprovalPanel） */
+.ic-confirm {
+  border-color: var(--dsw-alias-state-warn-secondary);
+}
+
+/* ---------- 审批卡（1:1 对齐 dsh ApprovalPanel.module.css） ---------- */
+.ic-ap-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--dsw-alias-state-warn-tertiary);
+  color: var(--dsw-alias-state-warn-primary);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.ic-ap-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* 理由/命令是无界模型文本，超长时仅此区域滚动，操作按钮始终可见 */
+.ic-ap-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 16px 0;
+}
+
+.ic-ap-tool {
+  font-family: var(--ds-font-family-code);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.ic-ap-headline {
+  color: var(--dsw-alias-label-primary);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 24px;
+  white-space: pre-wrap;
+}
+
+.ic-ap-headline[data-danger="true"] {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.ic-ap-command {
+  color: var(--dsw-alias-label-tertiary);
+  font-family: var(--ds-font-family-code);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.ic-ap-details {
+  margin: 2px 0 0;
+}
+
+.ic-ap-details summary {
+  font-size: 12.5px;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 会话级授权勾选（本会话相同命令/参数免再确认，精确匹配） */
+.ic-ap-remember {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  margin-top: -2px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.ic-ap-remember input[type='checkbox'] {
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.ic-ap-remember input[type='checkbox']:disabled + span {
+  opacity: 0.5;
+}
+
+.ic-ap-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+.ic-ap-feedback {
+  flex: 1;
+  min-width: 0;
+  padding-right: 8px;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: right;
+}
+
+/* 拒绝钮 hover 转淡红底 + 红字（dsh reject danger hover） */
+.ic-ap-reject:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+  color: var(--dsw-alias-state-error-primary);
+  border-color: transparent;
+}
+
+/* ---------- 提问卡头部（1:1 对齐 dsh QuestionComposer.module.css） ---------- */
+.ic-q-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+  padding: 20px 16px 0 24px;
+}
+
+.ic-q-eyebrow {
+  margin-bottom: 5px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.ic-q-title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 500;
+  white-space: pre-wrap;
+}
+
+.ic-q-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background-color var(--dsw-motion-out) var(--dsw-ease-standard),
+    color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+.ic-q-close > svg { transition: transform var(--dsw-motion-in) var(--dsw-ease-spring); }
+
+.ic-q-close:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+  transition-duration: var(--dsw-motion-in);
+}
+.ic-q-close:hover:not(:disabled) > svg { transform: scale(1.1); }
+.ic-q-close:active:not(:disabled) > svg {
+  transform: scale(0.9);
+  transition-duration: var(--dsw-motion-press);
+  transition-timing-function: var(--dsw-ease-standard);
+}
+
+.ic-q-close:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
+.ic-q-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  max-height: min(50vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ic-q-detail {
+  margin: 8px 24px 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre-wrap;
+}
+
+.ic-message {
+  margin: 0 0 0.6rem;
+  line-height: 1.55;
+  font-size: 13.5px;
+  color: var(--dsw-alias-label-primary);
+  white-space: pre-wrap;
+}
+
+.ic-message[data-danger="true"] {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.ic-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.ic-tag {
+  font-size: 11.5px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-multi-select);
+  color: var(--dsw-alias-label-primary);
+}
+
+.ic-tag[data-danger="true"] {
+  background: var(--dsw-static-red-100);
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.ic-input {
+  margin: 0.4rem 0 0;
+  padding: 0.5rem 0.6rem;
+  background: var(--dsw-alias-bg-multi-select);
+  border-radius: 6px;
+  font-family: var(--ds-font-family-code);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-primary);
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.ic-hint {
+  font-size: 12.5px;
+  color: var(--dsw-alias-label-secondary);
+  margin: -0.2rem 0 0.6rem;
+  font-style: italic;
+}
+
+.ic-result {
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  margin-top: 0.6rem;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--dsw-alias-state-success-tertiary);
+  color: var(--dsw-alias-state-success-secondary);
+}
+
+/* ---------- 操作完成后折叠成一行 ---------- */
+/* 折叠条是紧凑时间线条目，上下间距比等待态大卡（6/12）收成 6px，
+   包括它与下方 Think / 工具行的接缝；连续折叠条相邻 margin 折叠后也是 6px。 */
+.ic-collapsed {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px -4px;
+  padding: 2px 4px;
+  /* 与 Think/工具折叠行同款裸行：无框无底，6px 圆角 hover 显灰 */
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+  font-size: 13px;
+  line-height: 22px;
+  cursor: pointer;
+  transition: background-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.ic-collapsed:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  transition-duration: var(--dsw-motion-in);
+}
+
+.ic-collapsed-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 14px;
+}
+
+.ic-collapsed-ok { color: var(--dsw-alias-state-success-primary); }
+.ic-collapsed-reject { color: var(--dsw-alias-state-error-primary); }
+.ic-collapsed-skip { color: var(--dsw-alias-label-tertiary); }
+
+.ic-collapsed-text {
+  flex: 1;
+  min-width: 0;
+  color: var(--dsw-alias-label-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- done：常驻头部行 + 下方展开详情（同一行切换，无布局跳动） ----------
+   视觉与 Think/工具折叠行统一：头部是无框无底裸行（hover 显灰），
+   仅展开详情落在浅灰块里；.ic-root 的卡片边框/底色/阴影在此整体卸掉。 */
+.ic-done {
+  padding: 0;
+  margin: 2px 0;
+  overflow: visible;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ic-doneHead {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  margin: 0 -4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font-size: 13px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  transition: background-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.ic-doneHead:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  transition-duration: var(--dsw-motion-in);
+}
+
+/* chevron 与 Think/工具行同规则：默认朝右 ›、隐身；hover 淡入、展开态朝下 ⌄ 常驻 */
+.ic-doneChevron {
+  flex: none;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+  opacity: 0;
+  transform: rotate(-90deg);
+  transition:
+    opacity var(--dsw-motion-in) var(--dsw-ease-standard),
+    color var(--dsw-motion-in) var(--dsw-ease-standard),
+    transform var(--dsw-motion-panel) var(--dsw-ease-standard);
+}
+
+.ic-doneHead:hover .ic-doneChevron,
+.ic-done[data-expanded] .ic-doneChevron {
+  opacity: 1;
+}
+
+.ic-doneHead:hover .ic-doneChevron {
+  color: var(--dsw-alias-label-primary);
+}
+
+/* 展开态：回到图标原生朝向（朝下） */
+.ic-doneChevron-up {
+  transform: rotate(0deg);
+}
+
+/* 展开详情：工具 IN/OUT 卡同款浅灰块，左缘对齐头部摘要文字（图标槽 16 + gap 6） */
+.ic-doneBody {
+  margin: 4px 0 6px 22px;
+  padding: 10px 12px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 10px;
+  background: var(--dsw-alias-markdown-code-block);
+}
+
+.ic-doneBody > :first-child {
+  margin-top: 0;
+}
+
+.ic-doneBody .ic-message {
+  margin-top: 0.6rem;
+}
+
+.ic-doneBody .ic-input {
+  margin-bottom: 0.6rem;
+}
+
+.ic-result-reject {
+  background: var(--dsw-static-red-100);
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.ic-result-skip {
+  background: var(--dsw-alias-bg-skeleton);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.ic-done-answer {
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-multi-select);
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+/* ---------- 提问卡：编号选项 + 自定义作答（1:1 对齐 dsh QuestionComposer） ---------- */
+/* dsh .card 是 padding:0 0 10px，header/body/footer 各自携带内边距；ic-root 默认 padding:0 */
+.ic-ask {
+  padding-bottom: 10px;
+}
+
+.ic-q-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.ic-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex-shrink: 0;
+  margin: 8px 0 0;
+  padding: 4px 12px;
+}
+
+.ic-option {
+  display: flex;
+  /* flex-start：描述换行时序号始终锚定第一行（与 dsh .option 一致） */
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  /* 行是滚动内容，不做弹性收缩，避免换行文案画出行盒 */
+  flex-shrink: 0;
+  padding: 8px 12px 8px 8px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--dsw-motion-out) var(--dsw-ease-standard),
+    border-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.ic-option:hover:not(:disabled),
+.ic-option-active {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+.ic-option:hover:not(:disabled) { transition-duration: var(--dsw-motion-in); }
+
+.ic-option-active {
+  border-color: var(--dsw-alias-border-l2);
+}
+.ic-option-active:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover-accent);
+}
+
+.ic-option:disabled {
+  cursor: default;
+}
+
+/* 序号座 / 自定义行的编辑图标共用（dsh .number：20×20、r6、相对首行文字下沉 2px） */
+.ic-option-index {
+  display: grid;
+  place-items: center;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-overlay);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.ic-option-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.ic-option-label {
+  font-size: 14px;
+  line-height: 24px;
+  font-weight: 500;
+}
+
+/* 自定义作答行：选项形状 + 无边框内联输入，hover/focus/有值时抬升为选中态 */
+.ic-custom-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  flex-shrink: 0;
+  padding: 8px 12px 8px 8px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  transition:
+    background-color var(--dsw-motion-out) var(--dsw-ease-standard),
+    border-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.ic-custom-row:hover,
+.ic-custom-row:focus-within,
+.ic-custom-row-active {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.ic-custom-row:focus-within,
+.ic-custom-row-active {
+  border-color: var(--dsw-alias-border-l2);
+}
+
+.ic-custom-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  caret-color: var(--dsw-alias-state-business-primary);
+  font-size: 14px;
+  line-height: 24px;
+}
+
+.ic-custom-input::placeholder {
+  color: var(--dsw-alias-label-caption);
+}
+
+/* 无选项问题：自由作答框即 body 主体（dsh .customTextarea）。
+   dsh 中它嵌在 .options（侧 padding 12）内再留 12px 外边距，合计 24px 与标题左缘对齐 */
+.ic-q-textarea {
+  display: block;
+  flex-shrink: 0;
+  min-height: 64px;
+  max-height: 140px;
+  margin: 12px 24px 0;
+  padding: 8px 12px;
+  resize: none;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  outline: none;
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-label-primary);
+  caret-color: var(--dsw-alias-state-business-primary);
+  font-size: 14px;
+  line-height: 24px;
+}
+
+.ic-q-textarea:focus {
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.ic-q-textarea::placeholder {
+  color: var(--dsw-alias-label-caption);
+}
+
+/* 底部：左错误反馈 + 右跳过/提交（dsh .footer / .feedback / .footerActions） */
+.ic-q-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  margin-top: 12px;
+  padding: 0 10px 0 18px;
+}
+
+.ic-q-feedback {
+  flex: 1;
+  min-width: 0;
+  min-height: 16px;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: right;
+}
+
+.ic-q-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 720px) {
+  .ic-root {
+    border-radius: 16px;
+  }
+
+  .ic-q-header {
+    padding: 10px 12px 0 18px;
+  }
+
+  .ic-options {
+    padding: 4px 8px;
+  }
+
+  .ic-q-title {
+    font-size: 15px;
+    line-height: 21px;
+  }
+
+  .ic-option,
+  .ic-custom-row {
+    padding: 8px 6px;
+  }
+
+  .ic-q-footer {
+    align-items: flex-end;
+    padding: 0 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ic-option,
+  .ic-custom-row {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * composer 接管（1:1 对齐 dsh ApprovalPanel.root / QuestionComposer.frame）：
+ * 等待审批/提问期间，完整浮卡整体替换 InputBar，同一落点（居中、736 内容宽、
+ * 同位上下间距），是内容互换而不是布局跳动。
+ * ------------------------------------------------------------------------- */
+.ic-takeover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0 12px;
+}
+
+/* 接管卡吃满内容宽，自身 margin 复位（帧 padding 负责间距）。 */
+.ic-takeover .ic-root {
+  width: 100%;
+  max-width: 736px;
+  margin: 0;
+}
+
+/* ---------- 等待态时间线行：完整操作卡在底部，这里只留一行活动状态 ---------- */
+.ic-wait {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px -4px;
+  padding: 2px 4px;
+  /* 与 Think/工具/已决议行同款裸行；琥珀脉冲点是唯一状态色 */
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 13px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.ic-wait-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dsw-alias-state-warn-primary);
+  animation: ic-wait-pulse 1.6s ease-in-out infinite;
+}
+
+.ic-wait-icon {
+  flex: none;
+  font-size: 13px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.ic-wait-label {
+  flex: none;
+  font-weight: 500;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.ic-wait-sep {
+  flex: none;
+  color: var(--dsw-alias-label-dimmed);
+}
+
+.ic-wait-summary {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes ic-wait-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ic-wait-dot {
+    animation: none;
+  }
+}
+
+/* ===========================================================================
+   全局后台交互浮层（GlobalInteractionHost）
+   用户在观测/设置/其他会话页时，后台会话的审批/提问在此直接处理。
+   表面/描边/阴影复用交互卡 token，亮暗主题自适应。
+   =========================================================================== */
+.gih-layer {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: calc(100vw - 40px);
+  pointer-events: none; /* 空白区不挡页面交互，卡片自身放行 */
+}
+
+.gih-card {
+  width: 380px;
+  max-width: 100%;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--dsw-alias-border-l2-darkmode-thin);
+  border-radius: 16px;
+  background: var(--dsw-specific-input-major);
+  box-shadow: var(--dsw-shadow-lv2);
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+}
+
+.gih-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 14px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2-darkmode-thin);
+}
+
+.gih-head-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.gih-head-dot.warn {
+  background: var(--dsw-alias-state-warn-tertiary);
+  color: var(--dsw-alias-state-warn-primary);
+}
+
+.gih-head-dot.ask {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.gih-head-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.gih-head-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gih-head-sub {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.gih-jump {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  transition: background-color var(--dsw-motion-in) var(--dsw-ease-standard);
+}
+
+.gih-jump:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.gih-body {
+  padding: 10px 12px 12px;
+  max-height: min(60vh, 560px);
+  overflow: auto;
+}
+
+/* 卡内交互卡去掉时间线语境的外边距，贴合浮层内边距 */
+.gih-body .ic-root {
+  margin: 0;
+  border-radius: 14px;
+}
+
+@media (max-width: 720px) {
+  .gih-layer {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    max-width: none;
+  }
+
+  .gih-card {
+    width: auto;
+  }
+}
+

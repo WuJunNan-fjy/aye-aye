@@ -1,0 +1,267 @@
+/* ============================================================
+ * Aye v2 layout.css —— 应用外壳
+ *   可选 Frame Top（仅 Electron：拖拽带 + 窗口控制）
+ *   Frame Body（单一可折叠侧栏 + 内容区）
+ * ============================================================ */
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--tm-shell-fill);
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsw-font-family);
+  font-size: 14px;
+  line-height: 22px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* ── App Frame: 顶栏 / 主体 / 底栏 纵向三段 ── */
+.app-frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  /* TRAE 式外壳：窗口统一灰底，白色内容面板浮于其上 */
+  background: var(--tm-shell-fill);
+}
+
+/* ═══ Frame Top（仅 Electron，36px 拖拽带；Web 下不渲染）═══ */
+.frame-top {
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  background: transparent;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.frame-top-drag {
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.window-controls {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.wc-btn {
+  width: 30px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition:
+    background-color var(--dsw-motion-out) var(--dsw-ease-standard),
+    color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+.wc-btn:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); transition-duration: var(--dsw-motion-in); }
+.wc-btn.close:hover { background: var(--dsw-alias-state-error-primary); color: var(--dsw-alias-on-accent); }
+
+/* ── 本地后端状态徽标（ready 时不渲染；默认非侵入，仅顶栏左侧一个小点） ── */
+.backend-badge {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+button.backend-badge { cursor: pointer; }
+button.backend-badge:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.backend-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.backend-badge.starting .backend-dot { background: #8a8f98; animation: backend-pulse 1.4s ease-in-out infinite; }
+.backend-badge.degraded .backend-dot { background: #d4a04d; animation: backend-pulse 1.4s ease-in-out infinite; }
+.backend-badge.down .backend-dot { background: #e5484d; }
+.backend-badge.down { color: #e5484d; }
+@keyframes backend-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.82); }
+}
+
+/* ── 应用更新徽标（available/downloading/downloaded） ── */
+.update-badge {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  margin-right: 8px;
+  padding: 0 9px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: #2f9e63;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s ease, opacity .15s ease;
+}
+.update-badge:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.update-badge.downloading { color: var(--dsw-alias-label-tertiary); }
+.update-badge.downloading svg { animation: backend-pulse 1.4s ease-in-out infinite; }
+.update-badge.available svg { animation: backend-pulse 2.2s ease-in-out infinite; }
+body[data-ds-dark-theme] .update-badge { color: #4cc38a; }
+
+/* 更新弹窗内的自定义按钮与说明（antd Modal footer 已替换为自定义按钮） */
+.tm-update-btn {
+  height: 30px;
+  padding: 0 14px;
+  margin-left: 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, opacity .15s ease;
+}
+.tm-update-btn.ghost {
+  border: 1px solid var(--dsw-alias-line-base, rgba(0,0,0,.12));
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #555);
+}
+.tm-update-btn.ghost:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(0,0,0,.04)); }
+.tm-update-btn.primary {
+  border: 1px solid #0f1115;
+  background: #0f1115;
+  color: #fff;
+}
+.tm-update-btn.primary:hover { opacity: .86; }
+.tm-update-btn.primary:disabled { opacity: .5; cursor: default; }
+body[data-ds-dark-theme] .tm-update-btn.primary {
+  border-color: #f9fafb;
+  background: #f9fafb;
+  color: #0f1115;
+}
+.tm-update-notes {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--dsw-alias-label-secondary, #444);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow: auto;
+}
+.tm-update-notes.muted { opacity: .75; }
+
+/* ═══ Frame Body（侧栏 + 内容区）═══ */
+.frame-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── 内容区：只承担浮层外灰缝（8px），自身透明露出窗口灰底 ── */
+.content-area {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px;
+  overflow: hidden;
+  background: transparent;
+}
+
+/* ── 白色浮层面板：圆角 14 + 轻阴影，圆角裁切内部终端/文件树等所有内容 ── */
+.content-surface {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  background: var(--dsw-alias-bg-base);
+  overflow: hidden;
+  box-shadow: var(--dsw-shadow-lv2);
+  /* 浅色靠阴影分层；深色阴影弱，补一圈极淡描边给出面板轮廓 */
+  border: 1px solid var(--dsw-alias-border-l1);
+}
+
+/* 观测骨架无自带高度，浮层 flex 列里补满高度链 */
+.obs-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Settings chrome（页面框架）── */
+.settings-page {
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.settings-page h1 {
+  margin: 4px 0 16px;
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 700;
+  color: var(--dsw-alias-label-primary);
+}
+
+.settings-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--dsw-alias-label-tertiary);
+  margin: 20px 0 10px;
+}
+
+/* ── Placeholder state surfaces ── */
+.placeholder-surface {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  padding: 32px;
+  border-radius: 12px;
+  background: var(--dsw-specific-tip);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+  border: 1px dashed var(--dsw-alias-border-l2);
+}

@@ -1,0 +1,77 @@
+# 环境变量和敏感数据
+**/.env
+**/.env.*
+!.env.example
+**/.aye/
+*.db
+*.db-shm
+*.db-wal
+.master_key
+
+# 构建产物
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+
+# Java
+*.jar
+*.log
+*.err
+
+# 打包产物/压缩包（不入库）
+*.zip
+*.tar.gz
+*.tgz
+
+# 部署 e2e 本地临时站点与归档（测试产物，不入库）
+.deploy-e2e/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# AI workspace
+.trae/
+
+# Desktop build outputs
+apps/aye-desktop/out/
+apps/aye-desktop/dist/
+apps/aye-desktop/release/
+apps/aye-desktop/.npm-cache/
+apps/aye-desktop/build/jre/
+apps/aye-desktop/build/backend/
+apps/aye-desktop/build/runtime/
+
+# Maven 构建产物（Java 模块 apps/aye-server、packages/aye-ai-core）
+**/target/
+
+# 本地数据库备份（个人/本地，不入库）
+_db_backup/
+
+# WorkBuddy 本地 agent 数据（个人/本地，不入库）
+.workbuddy/
+
+# Aye 运行时数据（含备份快照、会话等，本地不入库）
+.aye-data/
+.uploads/
+
+# 前端构建临时文件
+*.timestamp-*.mjs
+electron.vite.config.*.mjs
+
+# vite.config.ts 的 composite 编译产物（tsconfig.node.json 会 emit，勿提交）
+apps/aye-frontend-v2/vite.config.js
+apps/aye-frontend-v2/vite.config.d.ts
+
+# 运行时本地目录（sqlite-jdbc 原生库解压等）
+/build/
+
+opencode/
+
+# 锁文件：前端用 pnpm（pnpm-lock.yaml），桌面端用 npm（package-lock.json），各自保留

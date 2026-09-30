@@ -1,0 +1,437 @@
+/* ============================================================
+ * Aye v2 inputbar.css —— 1:1 复刻 dsh InputBar.module.css
+ * Source: packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
+ * 说明：dsh 用镜像/backdrop 双图层做 chips 装饰；v2 采用普通 textarea
+ * （无 chips 机器），保留 card 胶囊、工具行、send/stop 圆钮的全部视觉。
+ * --dsh-composer-* 布局变量在 v2 未定义，就地声明。
+ * 类名前缀: inp-
+ * ============================================================ */
+
+.inp-root {
+  --inp-card-max: 736px;
+  --inp-side-clearance: 16px;
+  --inp-text-max-height: 336px; /* 14 行 × 24px line-height */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 var(--inp-side-clearance) 8px;
+}
+
+/* hero（空会话居中大卡片）：无底部外距；textarea 抬高到 3 行（76px），
+   读起来是一张「大卡片」；composer 落底后收回 2 行 52px（见 .inp-textarea 基线）。 */
+.inp-root-hero {
+  padding-bottom: 0;
+}
+
+.inp-root-hero .inp-textarea {
+  min-height: 76px;
+}
+
+.inp-notice {
+  width: 100%;
+  max-width: var(--inp-card-max);
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.inp-noticeError {
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.inp-card {
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: var(--inp-card-max);
+  padding-top: 10px;
+  border: 1px solid var(--dsw-alias-border-l2-darkmode-thin);
+  border-radius: 22px;
+  background: var(--dsw-specific-input-major);
+  box-shadow: var(--dsw-shadow-lv2);
+  font-size: 16px;
+  line-height: 24px;
+  /* 聚焦：品牌色细描边 + 极淡青蓝光晕（过渡沿用 token，克制不跳） */
+  transition:
+    border-color var(--dsw-motion-in) var(--dsw-ease-standard),
+    box-shadow var(--dsw-motion-in) var(--dsw-ease-standard);
+}
+
+.inp-card:focus-within {
+  /* 墨色体系：聚焦只给中性深描边 + 墨晕（深色主题自动转白晕），不再用青蓝光晕 */
+  border-color: var(--dsw-alias-border-l3);
+  box-shadow: 0 0 0 3px var(--dsw-alias-interactive-bg-active), var(--dsw-shadow-lv2);
+}
+
+.inp-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  caret-color: var(--dsw-alias-state-business-primary);
+  padding: 4px 12px 0 16px;
+  font-family: var(--dsw-font-family);
+  font-size: inherit;
+  line-height: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  overflow-y: auto;
+  max-height: var(--inp-text-max-height);
+}
+
+.inp-textarea::placeholder {
+  color: var(--dsw-alias-label-caption);
+  user-select: none;
+}
+
+.inp-textarea:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: not-allowed;
+}
+
+/* 工具行：左侧 + 与模式 chip，右侧模型座 + 发送。 */
+.inp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 8px 6px;
+  min-width: 0;
+}
+
+.inp-tools,
+.inp-modes,
+.inp-trailing {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.inp-tools {
+  gap: 16px;
+}
+
+.inp-modes {
+  gap: 12px;
+}
+
+.inp-trailing {
+  flex: none;
+  gap: 12px;
+}
+
+/* 附加圆钮（+）：28px，selector 填充，primary 图标。 */
+.inp-add {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 999px;
+  background: var(--dsw-specific-selector);
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+  transition: background-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+.inp-add > svg { transition: transform var(--dsw-motion-in) var(--dsw-ease-spring); }
+
+.inp-add:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover-solid);
+  transition-duration: var(--dsw-motion-in);
+}
+.inp-add:hover:not(:disabled) > svg { transform: translateY(-1px) scale(1.08); }
+.inp-add:active:not(:disabled) > svg {
+  transform: scale(0.92);
+  transition-duration: var(--dsw-motion-press);
+  transition-timing-function: var(--dsw-ease-standard);
+}
+
+.inp-add:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* 部署模式火箭钮：rest 透明（背景仅 hover 出现），激活为墨黑实心。 */
+.inp-deploy {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  transition:
+    background-color var(--dsw-motion-out) var(--dsw-ease-standard),
+    color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.inp-deploy > svg {
+  transition: transform var(--dsw-motion-in) var(--dsw-ease-spring);
+}
+
+.inp-deploy:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover-solid);
+  color: var(--dsw-alias-label-primary);
+}
+
+.inp-deploy.is-active {
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-foreground);
+}
+
+.inp-deploy.is-active > svg {
+  animation: inp-deploy-pop 0.5s var(--dsw-ease-spring, ease);
+}
+
+.inp-deploy:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--dsw-alias-border-l3);
+}
+
+.inp-deploy:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@keyframes inp-deploy-pop {
+  0% { transform: translateY(1px) rotate(-8deg); }
+  55% { transform: translateY(-2px) rotate(6deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inp-deploy.is-active > svg { animation: none; }
+}
+
+/* 发送钮：36px 墨黑圆角方块（8px）+ 白色向上粗箭头；深色主题下自动反转为白面深箭头。
+   对齐 TRAE「页面唯一重色点」构图，走单色墨色体系（button-primary 令牌）。 */
+.inp-primary {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-foreground);
+  cursor: pointer;
+  transition:
+    opacity var(--dsw-motion-out) var(--dsw-ease-standard),
+    transform var(--dsw-motion-in) var(--dsw-ease-spring),
+    background-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.inp-primary:hover:not(:disabled) {
+  opacity: 1;
+  background: var(--dsw-alias-button-primary-hover);
+  transform: scale(1.04);
+}
+
+.inp-primary:active:not(:disabled) {
+  transform: scale(0.94);
+  transition-duration: var(--dsw-motion-press);
+  transition-timing-function: var(--dsw-ease-standard);
+}
+
+.inp-primary:disabled {
+  background: var(--dsw-alias-label-primary);
+  opacity: 0.15;
+  cursor: default;
+}
+
+/* 运行中停止态：危险色底方块（状态令牌 error-primary，前景恒白） */
+.inp-primary-stop,
+.inp-primary-stop:disabled {
+  background: var(--dsw-alias-state-error-primary);
+  color: var(--dsw-alias-on-accent);
+  opacity: 1;
+}
+
+.inp-primary-stop:hover:not(:disabled) {
+  opacity: 0.88;
+  background: var(--dsw-alias-state-error-primary);
+  transform: scale(1.04);
+}
+
+/* ---------- 拖拽进对话：附件 / 服务器文件 chips ---------- */
+
+.inp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  min-width: 0;
+}
+
+.inp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  padding: 3px 6px 3px 8px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 999px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.inp-chipIcon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+
+.inp-chipName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inp-chipSize,
+.inp-chipProgress {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+}
+
+.inp-chipError {
+  flex: none;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 11px;
+}
+
+.inp-chipRemove {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color var(--dsw-motion-out) var(--dsw-ease-standard),
+    color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+.inp-chipRemove > svg { transition: transform var(--dsw-motion-in) var(--dsw-ease-spring); }
+
+.inp-chipRemove:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover-solid);
+  color: var(--dsw-alias-label-primary);
+  transition-duration: var(--dsw-motion-in);
+}
+.inp-chipRemove:hover:not(:disabled) > svg { transform: scale(1.12); }
+.inp-chipRemove:active:not(:disabled) > svg {
+  transform: scale(0.9);
+  transition-duration: var(--dsw-motion-press);
+  transition-timing-function: var(--dsw-ease-standard);
+}
+
+.inp-chipRemove:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* 拖拽悬停高亮：整卡描边 + 柔光。 */
+.inp-dragover .inp-card,
+.inp-root[data-drag-over] .inp-card {
+  border-color: var(--dsw-alias-state-business-primary);
+  box-shadow: 0 0 0 3px var(--dsw-alias-state-business-primary-tint),
+    var(--dsw-shadow-lv2);
+}
+
+/* 附件 chip 小标签 */
+.inp-chipTag {
+  font-size: 10px;
+  border: 1px solid #999;
+  border-radius: 3px;
+  padding: 0 4px;
+  color: #555;
+  line-height: 14px;
+  margin-left: 4px;
+}
+
+/* 文件夹默认选择重置按钮 */
+.inp-choiceReset {
+  border: 1px solid #bbb;
+  background: transparent;
+  border-radius: 3px;
+  font-size: 10px;
+  color: #555;
+  padding: 0 5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* 文件夹二选一卡 */
+.fchoice-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+.fchoice-card {
+  background: #fff;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 16px;
+  width: 360px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.fchoice-title { font-size: 13px; font-weight: 600; color: #111; }
+.fchoice-desc { font-size: 12px; color: #666; margin: 4px 0 12px; }
+.fchoice-actions { display: flex; flex-direction: column; gap: 8px; }
+.fchoice-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border: 1px solid #888;
+  background: #fff;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #111;
+  cursor: pointer;
+}
+.fchoice-btn:hover { background: #f2f2f2; }
+.fchoice-sub { font-size: 11px; color: #777; }
+.fchoice-remember {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #444;
+  margin-top: 12px;
+  cursor: pointer;
+}

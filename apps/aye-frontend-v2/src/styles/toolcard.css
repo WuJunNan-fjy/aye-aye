@@ -1,0 +1,420 @@
+/* ToolCard —— 翻译 dsh ToolRow.module.css。全部 token 映射到 theme.css */
+
+.tc-root {
+  display: flex;
+  flex-direction: column;
+}
+
+.tc-root[data-state='running'] {
+  position: relative;
+}
+
+/* running 扫光（deepsuite ShimmerText 模式）：glare 带滑过行内容。 */
+.tc-root[data-state='running'] .tc-row::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 300px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--dsw-alias-bg-base) 60%, transparent) 55%,
+    transparent 100%
+  );
+  animation: tc-row-sweep 2.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes tc-row-sweep {
+  0% { left: -300px; }
+  90%, 100% { left: 100%; }
+}
+
+.tc-row {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  padding: 2px 4px;
+  margin: 0 -4px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.tc-row:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  transition-duration: var(--dsw-motion-in);
+}
+
+.tc-row:focus-visible {
+  outline: 1.5px solid var(--dsw-alias-button-info-fill);
+  outline-offset: 1px;
+}
+
+.tc-leading {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--dsw-alias-label-secondary);
+  transition: color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.tc-row:hover .tc-leading {
+  color: var(--dsw-alias-label-primary);
+}
+
+/* running：旋转 spinner（与思考行 rzn-thinkIcon 同风格；黑白单色 primary 墨色）。 */
+.tc-runIcon {
+  color: var(--dsw-alias-label-primary);
+  animation: tc-spin 1s linear infinite;
+}
+
+/* bash 类运行态：终端逐行输出（动效见 fx-icons.css），同样提为 primary 墨色。 */
+.tc-leading .tm-ico-py {
+  color: var(--dsw-alias-label-primary);
+}
+
+@keyframes tc-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 状态点：error = 红。 */
+.tc-stateDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dsw-alias-state-error-primary);
+}
+
+.tc-title {
+  flex: none;
+  font-size: 13px;
+  line-height: 22px;
+  font-weight: 400;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.tc-sep {
+  flex: none;
+  width: 2px;
+  height: 2px;
+  border-radius: 1px;
+  margin: 0 2px;
+  background: var(--dsw-alias-label-caption);
+}
+
+.tc-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* 文件路径链接（read/write/edit）：与 summary 同几何 + 常驻下划线。 */
+.tc-fileLink {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  font-size: 13px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-secondary);
+  text-decoration: underline;
+  text-decoration-color: var(--dsw-alias-label-dimmed);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition:
+    color var(--dsw-motion-out) var(--dsw-ease-standard),
+    text-decoration-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+.tc-fileLink:hover {
+  color: var(--dsw-alias-label-primary);
+  text-decoration-color: currentColor;
+  transition-duration: var(--dsw-motion-in);
+}
+
+/* 失败行摘要用错误色。 */
+.tc-errorSummary {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.tc-chevron {
+  flex: none;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-alias-label-secondary);
+  opacity: 0;
+  transition:
+    opacity var(--dsw-motion-in) var(--dsw-ease-standard),
+    color var(--dsw-motion-in) var(--dsw-ease-standard);
+}
+
+/* 旋转放在 svg 自身（11x11 正方形，绕自身中心转），避免容器 padding
+   造成偏心旋转导致箭头歪斜。 */
+.tc-chevron svg {
+  display: block;
+  transform: rotate(-90deg);
+  transition: transform var(--dsw-motion-panel) var(--dsw-ease-standard);
+}
+
+.tc-row:hover .tc-chevron,
+.tc-row:focus-visible .tc-chevron,
+.tc-rootOpen .tc-chevron {
+  opacity: 1;
+}
+
+.tc-row:hover .tc-chevron,
+.tc-row:focus-visible .tc-chevron {
+  color: var(--dsw-alias-label-primary);
+}
+
+.tc-rootOpen .tc-chevron svg {
+  transform: rotate(0deg);
+}
+
+/* 展开体：IN/OUT 卡片 —— 挂载时淡入+下沉，避免瞬开。 */
+.tc-bodyWrap {
+  display: flex;
+  flex-direction: column;
+  margin: 4px 0 4px 4px;
+  animation: tc-body-in var(--dsw-motion-panel) var(--dsw-ease-standard);
+}
+
+@keyframes tc-body-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-runIcon,
+  .tc-root[data-state='running'] .tc-row::after,
+  .tc-bodyWrap {
+    animation: none;
+  }
+}
+
+.tc-ioCard {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 12px;
+  background: var(--dsw-alias-markdown-code-block);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.tc-ioSection {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 14px;
+  align-items: baseline;
+  padding: 12px 16px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.tc-ioSection::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  background-color: var(--dsh-scrollbar-thumb);
+  background-clip: padding-box;
+  border-radius: 6px;
+}
+/* 鼠标进入 IN/OUT 滚动区域即加深滚动条（不必精确悬停在细条上）。 */
+.tc-ioSection:hover::-webkit-scrollbar-thumb {
+  background-color: var(--dsh-scrollbar-thumb-hover);
+}
+.tc-ioSection::-webkit-scrollbar-track {
+  margin: 6px 0;
+}
+
+.tc-ioLabel {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.tc-ioDivider {
+  flex: none;
+  height: 1px;
+  background: var(--dsw-alias-border-l2);
+}
+
+.tc-ioText {
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--dsw-alias-label-secondary);
+  font-family: var(--dsw-font-markdown-code-block-small);
+}
+.tc-ioText[data-error] {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+/* diff 简化高亮体。 */
+.tc-diffBodyWrap {
+  margin-top: 4px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 12px;
+  background: var(--dsw-alias-markdown-code-block);
+  overflow: auto;
+  max-height: 260px;
+}
+.tc-diff {
+  margin: 0;
+  padding: 10px 16px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  font-family: var(--dsw-font-markdown-code-block-small);
+  white-space: pre;
+}
+.tc-diffAdd {
+  color: var(--dsw-alias-state-success-primary);
+}
+.tc-diffDel {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+/* 无障碍隐藏的运行态文本。 */
+.tc-visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- 主对话线连接阻断卡（HostConnectBlock，B 方案） ---------- */
+/* 橙色左边条提示阻断；成功态翻绿。统一走 warn-label / success-primary 状态令牌。 */
+.hcb-root {
+  margin: 6px 0 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-left: 3px solid var(--dsw-alias-state-warn-label);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hcb-root[data-state='connected'] {
+  border-left-color: var(--dsw-alias-state-success-primary);
+}
+
+.hcb-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hcb-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  color: var(--dsw-alias-state-warn-label);
+}
+
+.hcb-iconOk {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.hcb-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.hcb-host {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+  font-family: var(--dsw-font-markdown-code-block-small);
+  word-break: break-all;
+}
+
+.hcb-desc {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.hcb-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.hcb-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+/* 方块小圆角（用户偏好），覆盖 dsh-btn-sm 胶囊 r14。 */
+.hcb-btn {
+  border-radius: 8px;
+}
+
+.hcb-pwd {
+  box-sizing: border-box;
+  width: 200px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-base);
+  font-size: 12px;
+  color: var(--dsw-alias-label-primary);
+  outline: none;
+  transition: border-color var(--dsw-motion-in) var(--dsw-ease-standard), box-shadow var(--dsw-motion-in) var(--dsw-ease-standard);
+}
+
+.hcb-pwd::placeholder {
+  color: var(--dsw-alias-label-dimmed);
+}
+
+.hcb-pwd:focus {
+  border-color: var(--dsw-alias-label-secondary);
+}
+
+.hcb-pwd:disabled {
+  opacity: 0.5;
+}
+
+.hcb-error {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-state-error-primary);
+  word-break: break-all;
+}

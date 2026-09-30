@@ -1,0 +1,310 @@
+/* ============================================================
+ * DeployDock.css —— 部署进度码头 + 部署模式条 + 一键部署建议条
+ * 视觉契约对齐 TodoDock：12px 圆角、折叠 36px 行、736 居中列、单色体系。
+ * ============================================================ */
+
+.dp-root {
+  box-sizing: border-box;
+  flex: none;
+  overflow: hidden;
+  width: 100%;
+  max-width: 736px;
+  margin: 0 auto 8px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 12px;
+  background: var(--dsw-specific-tip);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+.dp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 12px;
+}
+
+.dp-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dp-header:focus-visible {
+  outline: 2px solid var(--dsw-alias-label-secondary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.dp-lead {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.dp-title {
+  flex: none;
+  font-size: 13px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.dp-progress {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--dsw-alias-label-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dp-root[data-failed='true'] .dp-progress {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.dp-chevron {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.dp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.dp-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.dp-glyphCell {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 20px;
+}
+
+.dp-itemText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dp-itemTitle {
+  flex: none;
+}
+
+.dp-itemSummary {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dp-item[data-status='done'] .dp-itemTitle,
+.dp-item[data-status='skipped'] .dp-itemTitle {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.dp-item[data-status='skipped'] .dp-itemTitle {
+  text-decoration: line-through;
+}
+
+.dp-item[data-status='failed'] .dp-itemTitle {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.dp-glyphDone {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  color: var(--dsw-alias-label-primary-foreground);
+  background: var(--dsw-alias-button-primary-fill);
+}
+
+.dp-glyphRunning {
+  color: var(--dsw-alias-label-primary);
+  animation: dp-spin 1s linear infinite;
+}
+
+.dp-glyphFailed {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  color: var(--dsw-alias-label-primary-foreground);
+  background: var(--dsw-alias-state-error-primary);
+}
+
+.dp-glyphPending,
+.dp-glyphSkipped {
+  color: var(--dsw-alias-label-caption);
+}
+
+@keyframes dp-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 全部完成：保留为可点开的极简摘要，弱化一档，hover 恢复。 */
+.dp-root[data-finished='true'] {
+  opacity: 0.62;
+  transition: opacity 0.25s ease;
+}
+
+.dp-root[data-finished='true']:hover,
+.dp-root[data-finished='true']:focus-within {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dp-glyphRunning { animation: none; }
+}
+
+/* ---------- 部署模式条（火箭模式开启期间常驻输入框上方） ---------- */
+.dmb-row,
+.dph-row {
+  width: 100%;
+  max-width: 736px;
+  margin: 0 auto 8px;
+  display: flex;
+}
+
+.dmb-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-height: 28px;
+  padding: 0 6px 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 16px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.dmb-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--dsw-alias-label-primary);
+}
+
+.dmb-name {
+  flex: none;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.dmb-project {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dmb-exit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.dmb-exit:hover {
+  background: var(--dsw-alias-interactive-bg-hover-accent);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* ---------- 一键部署建议条（B：选中项目后的一次性建议） ---------- */
+.dph-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 28px;
+  padding: 0 6px 0 10px;
+  border: 1px dashed var(--dsw-alias-border-l2);
+  border-radius: 16px;
+  background: transparent;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.dph-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.dph-go:hover { text-decoration: underline; }
+
+.dph-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.dph-close:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+

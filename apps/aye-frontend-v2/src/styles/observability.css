@@ -1,0 +1,756 @@
+/* ============================================================
+   Aye v2 observability.css —— 观测中心（事件流投影）
+   1) 操作日志：实时操作流（会话跳转 chip / 运行中脉冲动效）
+   2) Agent 追踪：turn 账本表格 + trajectory 时间线 Drawer
+   视觉：黑白墨色底 + 语义三色（绿/琥珀/红/灰），不使用蓝色
+   ============================================================ */
+
+.obs-page {
+  min-height: 0;
+}
+
+/* ---- 通用：实时按钮 / 状态点 ---- */
+.obs-auto-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.obs-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: obs-pulse 1.4s ease-in-out infinite;
+}
+
+.obs-live-num {
+  color: var(--dsw-alias-label-primary);
+}
+
+.obs-state-dot {
+  display: inline-block;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+}
+
+.obs-state-dot.live {
+  animation: obs-pulse 1.4s ease-in-out infinite;
+}
+
+/* ---- 共享语义色调（currentColor 驱动，深浅主题自动跟随 token） ---- */
+.obs-state-dot.tone-ok { background: var(--dsw-alias-state-success-primary); border-color: var(--dsw-alias-state-success-primary); }
+.obs-state-dot.tone-warn { background: var(--dsw-alias-state-warn-label); border-color: var(--dsw-alias-state-warn-label); }
+.obs-state-dot.tone-danger { background: var(--dsw-alias-state-error-primary); border-color: var(--dsw-alias-state-error-primary); }
+.obs-state-dot.tone-neutral { background: var(--dsw-alias-label-secondary); border-color: var(--dsw-alias-label-secondary); }
+
+.tone-ok { color: var(--dsw-alias-state-success-primary); }
+.tone-warn { color: var(--dsw-alias-state-warn-label); }
+.tone-danger { color: var(--dsw-alias-state-error-primary); }
+.tone-neutral { color: var(--dsw-alias-label-secondary); }
+
+@keyframes obs-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 28%, transparent); }
+  50% { opacity: 0.55; box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 0%, transparent); }
+}
+
+/* ============================================================
+   操作日志增补
+   ============================================================ */
+
+.obs-session-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 220px;
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-bg-layer-2);
+  border: 1px solid var(--dsw-alias-border-l1);
+  padding: 0 7px;
+  height: 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  transition: color var(--dsw-motion-in), border-color var(--dsw-motion-in),
+    background-color var(--dsw-motion-in);
+}
+
+.obs-session-chip:hover {
+  color: var(--dsw-alias-label-primary);
+  border-color: var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.obs-rel-time {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--dsw-alias-label-caption);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.obs-row.is-live {
+  background: color-mix(in srgb, var(--dsw-alias-label-primary) 3.5%, transparent);
+}
+
+.obs-live-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dsw-alias-label-primary);
+  animation: obs-pulse 1.4s ease-in-out infinite;
+  color: var(--dsw-alias-label-primary);
+}
+
+.obs-open-chat-btn {
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.obs-open-chat-title {
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 260px;
+}
+
+/* ============================================================
+   Agent 追踪 —— turn 账本
+   ============================================================ */
+
+.tj-toolbar .logs-select {
+  max-width: 120px;
+}
+
+.tj-head-hint {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.tj-head-hint > * {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tj-ledger {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 列宽用 minmax(0, …) 允许收缩，表头与行同栅格；极窄时整个账本一起横滚，
+   不再让表头 overflow:hidden 与表体横滚错位（旧实现右列被裁切的根因）。 */
+.tj-ledger-head,
+.tj-ledger-row {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1.7fr) minmax(108px, 1fr) 58px 96px 60px 78px 18px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  /* 含外层 8px*2 留白后触发横滚的临界点为 716px；取 700 留余量，避免仅差几像素出横滚条 */
+  min-width: 700px;
+}
+
+.tj-ledger {
+  overflow-x: auto;
+  padding: 0 8px;
+}
+
+.tj-ledger-head {
+  height: 36px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+  font-size: 11px;
+  color: var(--dsw-alias-label-caption);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* 提升特异性，覆盖复用类 .logs-list 的 4px 6px 内边距；
+   横向留白统一由外层 .tj-ledger 承担，保证表头/行栅格严格对齐。 */
+.tj-ledger .tj-ledger-body {
+  padding: 4px 0 8px;
+}
+
+/* 服务器分组：组间一条弱分隔，组头不参与栅格、不抢行高 */
+.tj-host-block {
+  min-width: 700px;
+}
+.tj-host-block + .tj-host-block {
+  border-top: 1px solid var(--dsw-alias-border-l2);
+  margin-top: 4px;
+  padding-top: 2px;
+}
+.tj-host-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-secondary);
+}
+.tj-host-head svg {
+  color: var(--dsw-alias-label-tertiary);
+  flex-shrink: 0;
+}
+.tj-host-name {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+.tj-host-count {
+  font-weight: 400;
+  font-size: 10.5px;
+  color: var(--dsw-alias-label-caption);
+}
+
+.tj-ledger-row {
+  height: 44px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12.5px;
+  transition: background-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.tj-ledger-row:hover { background: var(--dsw-alias-bg-layer-1); }
+.tj-ledger-row.selected { background: var(--dsw-alias-interactive-bg-hover-accent); }
+
+.tj-ledger-row.is-live {
+  box-shadow: inset 2px 0 0 var(--dsw-alias-label-primary);
+}
+
+.tj-ledger-row > span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.col-state { display: inline-flex; justify-content: center; }
+.col-time,
+.col-duration,
+.col-steps,
+.col-tokens {
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.col-open { display: inline-flex; justify-content: flex-end; }
+
+.tj-session-name {
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+  margin-right: 6px;
+}
+
+.tj-turn-no {
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary);
+  background: var(--dsw-alias-bg-layer-2);
+  border-radius: 4px;
+  padding: 0 5px;
+  margin-right: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tj-flags {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.tj-flag {
+  font-size: 10px;
+  padding: 0 5px;
+  border-radius: 4px;
+  border: 1px solid;
+  line-height: 16px;
+  height: 16px;
+}
+
+.tj-flag.warn {
+  color: var(--dsw-alias-state-warn-label);
+  border-color: color-mix(in srgb, var(--dsw-alias-state-warn-label) 35%, transparent);
+  background: var(--dsw-alias-state-warn-tertiary);
+}
+
+.tj-flag.danger {
+  color: var(--dsw-alias-state-error-primary);
+  border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 35%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);
+}
+
+.tj-model-cell {
+  font-family: var(--ds-font-family-code, 'JetBrains Mono, Menlo, monospace');
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+  margin-right: 6px;
+}
+
+.tj-mode {
+  font-size: 10px;
+  color: var(--dsw-alias-label-tertiary);
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 4px;
+  padding: 0 5px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.tj-sep { color: var(--dsw-alias-label-caption); margin: 0 2px; }
+
+/* ============================================================
+   trajectory 时间线 Drawer
+   ============================================================ */
+
+.tj-drawer-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tj-drawer-name {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tj-drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 24px;
+}
+
+.tj-drawer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: sticky;
+  top: -12px;
+  z-index: 2;
+  padding: 8px 0;
+  background: var(--dsw-alias-bg-base, #fff);
+}
+
+.tj-drawer-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tj-drawer-meta code {
+  font-family: var(--ds-font-family-code, 'JetBrains Mono, Menlo, monospace');
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* ============================================================
+   trajectory 两级时间线
+   L1：turn 摘要行（意图 / 命令数 / 结果 / 耗时），默认折叠
+   L2：消息（tag+散文）、思考（折叠）、38px 单行命令（输出折叠）
+   ============================================================ */
+
+.tj-turns {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tj-turn {
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+  scroll-margin-top: 56px;
+}
+.tj-turn:last-child { border-bottom: 0; }
+
+.tj-turn > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 14px;
+  transition: background-color var(--dsw-motion-in);
+}
+.tj-turn > summary::-webkit-details-marker { display: none; }
+.tj-turn > summary:hover { background: var(--dsw-alias-bg-layer-2); }
+.tj-turn[open] > summary { background: var(--dsw-alias-button-ghost-active-fill); }
+
+/* 异常轮：摘要行浅红底，折叠状态下也能一眼定位 */
+.tj-turn.is-error > summary {
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 8%, transparent);
+}
+.tj-turn.is-error[open] > summary {
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);
+}
+
+.tj-chev {
+  color: var(--dsw-alias-label-tertiary);
+  transition: transform var(--dsw-motion-in);
+  flex-shrink: 0;
+}
+.tj-turn[open] > summary > .tj-chev,
+.tj-think[open] > summary > .tj-chev,
+.tj-metrics[open] > summary > .tj-chev,
+.tj-cmd[open] .tj-chev {
+  transform: rotate(90deg);
+}
+
+.tj-turn-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+}
+
+.tj-turn > summary .tj-turn-no {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+  flex-shrink: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  line-height: inherit;
+}
+
+.tj-turn-intent {
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+  color: var(--dsw-alias-label-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tj-turn-meta {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--dsw-alias-label-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.tj-turn-cmds {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tj-turn-result {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 8px;
+  border-radius: 999px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tj-turn-result.error {
+  color: var(--dsw-alias-state-error-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 12%, transparent);
+}
+.tj-turn-result.stop {
+  color: var(--dsw-alias-label-tertiary);
+  background: var(--dsw-alias-bg-module-platform);
+}
+.tj-turn-result.warn {
+  color: var(--dsw-alias-state-warn-label);
+  background: var(--dsw-alias-state-warn-tertiary);
+}
+
+/* ---- L2 展开体 ---- */
+.tj-turn-body {
+  padding: 8px 16px 18px 42px;
+}
+
+/* 轮内上下文：模型 / 模式 / 工具数，一轮只出现一次 */
+.tj-turn-ctx {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 12px;
+  font-size: 11px;
+  color: var(--dsw-alias-label-caption);
+}
+.tj-turn-ctx code {
+  font-family: var(--ds-font-family-code, 'JetBrains Mono, Menlo, monospace');
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* ---- 消息：无框，小 tag + 正文 ---- */
+.tj-msg {
+  display: flex;
+  gap: 10px;
+  margin: 12px 0;
+  min-width: 0;
+}
+.tj-msg-body { min-width: 0; flex: 1; }
+
+.tj-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.tj-tag-user { color: var(--dsw-alias-state-success-primary); background: var(--dsw-alias-state-success-tertiary); }
+.tj-tag-assistant { color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-module-platform); }
+.tj-tag-warn { color: var(--dsw-alias-state-warn-label); background: var(--dsw-alias-state-warn-tertiary); }
+.tj-tag-error {
+  color: var(--dsw-alias-state-error-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 12%, transparent);
+}
+
+/* ---- 正文：散文 sans，保留换行（不再误用等宽） ---- */
+.tj-prose {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--dsw-alias-label-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-width: 0;
+}
+.tj-prose.dim { color: var(--dsw-alias-label-secondary); }
+.tj-prose.danger { color: var(--dsw-alias-state-error-primary); }
+
+.tj-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.tj-opt {
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  padding: 2px 8px;
+  line-height: 17px;
+}
+
+.tj-answer {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--dsw-alias-label-secondary);
+  border-left: 2px solid var(--dsw-alias-border-l2);
+  padding-left: 9px;
+  line-height: 1.6;
+}
+
+/* ---- 思考 / 压缩 / 指标：极弱折叠行 ---- */
+.tj-think,
+.tj-note,
+.tj-metrics {
+  margin: 7px 0;
+}
+.tj-think > summary,
+.tj-note > summary,
+.tj-metrics > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  font-size: 11.5px;
+  color: var(--dsw-alias-label-tertiary);
+  padding: 3px 7px;
+  border-radius: 6px;
+  user-select: none;
+}
+.tj-think > summary::-webkit-details-marker,
+.tj-note > summary::-webkit-details-marker,
+.tj-metrics > summary::-webkit-details-marker { display: none; }
+.tj-think > summary:hover,
+.tj-note > summary:hover,
+.tj-metrics > summary:hover {
+  background: var(--dsw-alias-bg-layer-3);
+  color: var(--dsw-alias-label-secondary);
+}
+.tj-think > .tj-prose,
+.tj-note > .tj-prose { padding: 4px 6px 2px 24px; font-size: 12.5px; }
+.tj-note > summary { color: var(--dsw-alias-state-warn-label); }
+
+.tj-metrics table {
+  border-collapse: collapse;
+  margin: 4px 0 0 6px;
+}
+.tj-metrics td {
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary);
+  padding: 3px 16px 3px 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---- 内部准备工具：一行弱提示 ---- */
+.tj-prep {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 6px 0;
+  padding: 4px 8px;
+  font-size: 11.5px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* ---- 命令分组：主机只显示一次 ---- */
+.tj-cmd-host {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 8px 5px;
+  font-size: 11px;
+  color: var(--dsw-alias-label-caption);
+}
+
+/* ---- 38px 单行命令，输出全部默认折叠 ---- */
+.tj-cmd {
+  border-radius: 8px;
+  min-width: 0;
+}
+.tj-cmd + .tj-cmd { margin-top: 2px; }
+
+.tj-cmd-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 8px;
+  transition: background-color var(--dsw-motion-in);
+}
+.tj-cmd > summary.tj-cmd-row {
+  list-style: none;
+  cursor: pointer;
+}
+.tj-cmd > summary.tj-cmd-row::-webkit-details-marker { display: none; }
+.tj-cmd > summary.tj-cmd-row:hover { background: var(--dsw-alias-bg-layer-3); }
+.tj-cmd[open] > .tj-cmd-row {
+  background: var(--dsw-alias-bg-layer-3);
+  border-radius: 8px 8px 0 0;
+}
+
+/* 失败行（failed 或 exit≠0）：常驻浅红底，折叠状态也保留 */
+.tj-cmd.is-fail > .tj-cmd-row {
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 8%, transparent);
+}
+.tj-cmd.is-fail > .tj-cmd-row:hover {
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 11%, transparent);
+}
+
+.tj-cmd-ico {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.tj-ico-ok { color: var(--dsw-alias-state-success-primary); }
+.tj-ico-err { color: var(--dsw-alias-state-error-primary); }
+.tj-ico-warn { color: var(--dsw-alias-state-warn-label); }
+.tj-ico-run { color: var(--dsw-alias-label-tertiary); }
+
+.tj-cmd-tool {
+  font-family: var(--ds-font-family-code, 'JetBrains Mono, Menlo, monospace');
+  font-size: 11.5px;
+  color: var(--dsw-alias-label-tertiary);
+  flex-shrink: 0;
+}
+
+.tj-cmd-args {
+  min-width: 0;
+  flex: 1;
+  font-family: var(--ds-font-family-code, 'JetBrains Mono, Menlo, monospace');
+  font-size: 12px;
+  color: var(--dsw-alias-label-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: ltr;
+  text-align: left;
+}
+
+.tj-cmd-meta {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+  color: var(--dsw-alias-label-caption);
+  font-variant-numeric: tabular-nums;
+}
+.tj-cmd-exit {
+  color: var(--dsw-alias-state-error-primary);
+  font-weight: 600;
+}
+.tj-shield { color: var(--dsw-alias-label-tertiary); display: inline-flex; }
+.tj-shield.no { color: var(--dsw-alias-state-error-primary); }
+.tj-shield.wait { color: var(--dsw-alias-state-warn-label); }
+
+.tj-cmd-confirm {
+  padding: 7px 12px;
+  font-size: 12px;
+  color: var(--dsw-alias-state-warn-label);
+  background: var(--dsw-alias-bg-layer-3);
+}
+
+.tj-cmd-out {
+  margin: 0;
+  padding: 10px 12px 12px;
+  background: var(--dsw-alias-markdown-code-block);
+  border-top: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 0 0 8px 8px;
+  font-family: var(--ds-font-family-code, 'JetBrains Mono, Menlo, monospace');
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--dsw-alias-label-secondary);
+  white-space: pre;
+  max-height: 320px;
+  overflow: auto;
+}
+.tj-cmd-out-empty {
+  font-family: inherit;
+  color: var(--dsw-alias-label-caption);
+}

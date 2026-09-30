@@ -1,0 +1,34 @@
+server:
+  port: ${PORT:8080}
+  # 默认仅绑定回环网卡；确需局域网开放时显式设置 SERVER_ADDRESS=0.0.0.0（应同时配置 AYE_API_TOKEN）
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  # Electron 退出时先调 /api/internal/shutdown：等待在途 SSE/上传收尾后再关（SQLite WAL 可正常 checkpoint）
+  shutdown: graceful
+
+spring:
+  application:
+    name: aye-server
+  lifecycle:
+    # 优雅关停最长等待；超时后 Electron 侧 taskkill 强杀兜底
+    timeout-per-shutdown-phase: 8s
+  servlet:
+    multipart:
+      # SFTP 上传大文件时放宽限制
+      max-file-size: 200MB
+      max-request-size: 200MB
+
+aye:
+  # 数据目录（SQLite 单文件 aye.db 存放处）
+  data-dir: ${user.home}/.aye
+  # 工具层 resolvePath 的起点（工作区绝对路径）
+  cwd: ${user.dir}
+  # 用户信任级别：trusted / standard / paranoid
+  trust-level: standard
+  # Agent 最大步数
+  max-steps: 10
+  # 单次输出最大 token
+  max-output-tokens: 8000
+  # 模型兜底（未在 models 表配置默认模型时使用）
+  default-model: deepseek-chat
+  default-base-url: https://api.deepseek.com/v1
+  default-api-key: ""

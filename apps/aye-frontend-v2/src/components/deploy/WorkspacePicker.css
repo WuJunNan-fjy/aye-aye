@@ -1,0 +1,311 @@
+/*
+ * 工作区选择器 —— 1:1 复刻 dsh ui-workspace/WorkspacePickFlow + ui-primitives/Menu。
+ * 形态：锚定触发器、向上弹出的菜单卡（非居中模态框）。
+ * 数值契约（dsh 源）：卡 padding 4 / r12 / lv3 阴影；行 min-h 40 / pad 8·10 /
+ * r10 / 14·22 / gap 8；选中态仅尾部 check，无填充；footer 顶线 l2 固定动作区。
+ */
+
+/* ---------- 入口 chip 行座（与 HostConnectBar / 输入卡共用 736 居中列） ----------
+ * 水平契约同 .conv-hostbar：width100 / max736 / margin 0 auto；
+ * chip 在行内贴左。警告条显隐、窗口宽窄变化都不改变 chip 左缘。 */
+.wp-triggerRow {
+  width: 100%;
+  max-width: 736px;
+  margin: 0 auto 8px;
+  display: flex;
+}
+
+/* ---------- 入口 chip（dsh EmptyHero.WorkspaceChip + 产品桌面版浅灰胶囊） ----------
+ * 源码契约：min-h28 / pad 0·8 / gap4 / r16 / 13·20·500；rest 透明、hover/展开填充。
+ * 产品截图（桌面版）rest 即浅灰胶囊（与模式 chip 同族），故 rest 取 hover 灰档，
+ * hover/展开加深一档；深色 token 自动反相。 */
+.wp-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: min(100%, 360px);
+  min-height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 16px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.wp-trigger:hover,
+.wp-trigger.is-open {
+  background: var(--dsw-alias-interactive-bg-hover-accent);
+}
+
+.wp-trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--dsw-alias-border-l3);
+}
+
+.wp-triggerFolder {
+  flex: none;
+  color: var(--dsw-alias-label-primary);
+}
+
+.wp-triggerLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wp-triggerChevron {
+  flex: none;
+  color: var(--dsw-alias-label-caption);
+  transition: transform 0.15s ease;
+}
+
+.wp-triggerChevron.is-open {
+  transform: rotate(180deg);
+}
+
+/* ---------- 输入框工具槽迷你入口（绑定项目后大胶囊坍缩为此图标） ---------- */
+.wp-mini {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  transition: background-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.wp-mini:hover,
+.wp-mini.is-open {
+  background: var(--dsw-alias-interactive-bg-hover-solid);
+  color: var(--dsw-alias-label-primary);
+}
+
+.wp-mini:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--dsw-alias-border-l3);
+}
+
+/* ---------- 菜单卡（figma MenuDropdown：r12 / hairline / lv3 / pad 4） ---------- */
+.wp-card {
+  position: fixed;
+  z-index: 1100;
+  box-sizing: border-box;
+  width: 264px;
+  max-width: 360px;
+  max-height: calc(100vh - 24px);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 12px;
+  background: var(--dsw-specific-menu);
+  box-shadow: var(--dsw-shadow-lv3);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+/* 项目列表区：内部滚动，footer 动作始终可见 */
+.wp-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Menu cell（figma .Menu_cell：min-h 40 / r10 / pad 8·10 / 14·22 / gap 8） */
+.wp-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  line-height: 22px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wp-item:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.wp-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.wp-itemIcon {
+  display: inline-flex;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.wp-itemLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wp-itemMeta {
+  flex: none;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
+}
+
+/* 选中标记：尾部 check（figma .Menu_cell），不是填充 */
+.wp-check {
+  flex: none;
+  display: inline-flex;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* 非交互状态行（加载中 / 空列表） */
+.wp-status {
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* 分组发丝线（figma 122:9481：1px，margin 4·2） */
+.wp-separator {
+  flex: none;
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--dsw-alias-border-l1);
+}
+
+/* ---------- Git 拉取展开区（Aye 独有，沿用 dsh Input/Button 原语数值） ---------- */
+.wp-git {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 2px 0;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.wp-input {
+  height: 32px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  outline: none;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.wp-input:focus {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.wp-input::placeholder {
+  color: var(--dsw-alias-label-dimmed);
+}
+
+.wp-gitGo {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 14px;
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-foreground);
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.wp-gitGo:hover:not(:disabled) {
+  background: var(--dsw-alias-button-primary-hover);
+}
+
+.wp-gitGo:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 错误行（dsh WorkspacePicker.module.css .modalError：12·18） */
+.wp-error {
+  flex: none;
+  margin: 4px 2px 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-error-primary);
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+  word-break: break-all;
+}
+
+/* ---------- 固定动作区（dsh Menu .footer：顶线 l2，pin 在滚动区下方） ---------- */
+.wp-footer {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+}
+
+.wp-footer .wp-itemIcon {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.wp-chevron {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  transition: transform 0.15s ease;
+}
+
+.wp-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+/* 危险行：error 文字/图标 + danger hover 填充 */
+.wp-danger {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.wp-danger .wp-itemIcon {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.wp-danger:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+}

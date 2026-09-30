@@ -1,0 +1,157 @@
+/* ============================================================
+ * Aye v2 sessions.css —— 输入条执行模式选择器
+ * 1:1 复刻 dsh ui-conversation PermissionSelect（盾牌 chip + 向上菜单）
+ * 会话树样式在 shell.css（st-*）。
+ * ============================================================ */
+
+.pm-root {
+  position: relative;
+  min-width: 0;
+}
+
+/* 触发 chip：与同排 ModelSelect 同一套 28px 圆角胶囊节奏 */
+.pm-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 220px;
+  height: 28px;
+  padding: 0 4px 0 8px;
+  border: none;
+  border-radius: 24px;
+  outline: none;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.pm-trigger:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  transition-duration: var(--dsw-motion-in);
+}
+
+.pm-trigger:focus-visible {
+  box-shadow: 0 0 0 2px var(--dsw-alias-border-l3);
+}
+
+.pm-trigger:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
+.pm-trigger-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+/* 16px 盾牌在 trigger 上收一档到 14px，菜单行保持 16px */
+.pm-trigger-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.pm-trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-chevron {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--dsw-alias-label-caption);
+  transition: transform var(--dsw-motion-panel) var(--dsw-ease-standard);
+}
+
+.pm-chevronOpen {
+  transform: rotate(180deg);
+}
+
+/* 向上弹出的菜单（与 .ms-menu 同一浮层契约） */
+.pm-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: min(240px, calc(100vw - 32px));
+  padding: 4px;
+  border: 1px solid var(--dsw-alias-border-inverted);
+  border-radius: 12px;
+  background: var(--dsw-specific-menu);
+  box-shadow: var(--dsw-shadow-lv3);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* 行：40px 高 / 8px 圆角 / 8px gap；选中态浅灰填充，右侧对勾 */
+.pm-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+  text-align: left;
+  transition: background-color var(--dsw-motion-out) var(--dsw-ease-standard);
+}
+
+.pm-item:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  transition-duration: var(--dsw-motion-in);
+}
+
+.pm-item.selected {
+  background: var(--dsw-specific-sidebar-nav-item-active);
+}
+
+.pm-item.selected:hover {
+  background: var(--dsw-alias-interactive-bg-hover-accent);
+}
+
+.pm-item-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.pm-item.selected .pm-item-icon {
+  color: var(--dsw-alias-label-primary);
+}
+
+.pm-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pm-check {
+  display: grid;
+  place-items: center;
+  flex: 0 0 18px;
+  font-size: 13px;
+  color: var(--dsw-alias-label-primary);
+}

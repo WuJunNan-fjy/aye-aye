@@ -1,0 +1,142 @@
+/* ============================================================
+   Aye v2 trace.css —— Agent 运行追踪面板
+   会话列表 + 点击展开逐步运行指标
+   ============================================================ */
+
+/* 会话条目：行 + 展开步骤容器 */
+.trace-item {
+  border-radius: 8px;
+  margin: 1px 0;
+}
+
+/* 会话行（复用 .logs-row 布局），展开时高亮 */
+.trace-session-row {
+  cursor: pointer;
+}
+
+.trace-session-row.selected {
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.trace-caret {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--dsw-alias-label-tertiary);
+  margin-top: 4px;
+}
+
+.trace-session-id {
+  font-family: var(--ds-font-family-code, 'JetBrains Mono, Menlo, monospace');
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* 展开的步骤区 */
+.trace-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 10px 10px 30px;
+}
+
+.trace-steps-loading {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-tertiary);
+  text-align: center;
+}
+
+/* 单步卡片 */
+.trace-step {
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  padding: 8px 10px;
+}
+
+.trace-step-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 6px;
+}
+
+.trace-step-no {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-tertiary);
+  font-family: var(--ds-font-family-code, 'JetBrains Mono, Menlo, monospace');
+  flex-shrink: 0;
+}
+
+.trace-tool-names {
+  font-size: 12px;
+  font-family: var(--ds-font-family-code, 'JetBrains Mono, Menlo, monospace');
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trace-badge {
+  font-size: 10px;
+  padding: 0 6px;
+  height: 16px;
+  line-height: 16px;
+  border: 1px solid;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.trace-badge.compact {
+  color: var(--dsw-alias-state-warn-primary);
+  border-color: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 27%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 8%, transparent);
+}
+
+.trace-stop-reason {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary);
+  flex-shrink: 0;
+  text-align: right;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 指标网格 */
+.trace-step-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.trace-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.trace-metric-label {
+  font-size: 10px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.trace-metric-value {
+  font-size: 12px;
+  color: var(--dsw-alias-label-primary);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trace-metric-value.mono {
+  font-family: var(--ds-font-family-code, 'JetBrains Mono, Menlo, monospace');
+}

@@ -1,0 +1,95 @@
+/* Aye v2 global.css —— 全局少量兼容样式（非组件/非主题/非布局） */
+
+a { color: inherit; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+::selection {
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+/* ── Lucide 图标基线：尺寸 1em 跟随 font-size（沿用原图标字号控尺寸约定），
+   统一 2 描边（Lucide 官方默认值）——圆角线帽是 lucide 自带语言，全站只此一套动作图标 ── */
+.lucide {
+  width: 1em;
+  height: 1em;
+  stroke-width: 2;
+  flex: none;
+}
+
+/* 旋转等待态（替代 antd 图标 spin 属性） */
+@keyframes dsh-spin {
+  to { transform: rotate(360deg); }
+}
+.dsh-spin {
+  animation: dsh-spin 0.9s linear infinite;
+}
+
+/* ── 品牌标翠瞳呼吸：线性 a 字碗中的瞳点长周期明暗起伏，
+   静态 ICO/PNG 永远停在亮帧，偏好减弱动态效果时关闭 ── */
+@keyframes aye-pupil-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.aye-brand-pupil {
+  animation: aye-pupil-breathe 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aye-brand-pupil { animation: none; }
+}
+
+/* ── Kimi 风 hover 微动画：图标被「逗一下」的弹性反馈，hover 触发一次、自动复位。
+   类挂在按钮容器上，作用域封闭，只动 transform 不影响布局；
+   fill-mode: both 让结束帧（静止态）在 hover 停留期间覆盖基础 hover 缩放，
+   鼠标移出后动画摘除，自然回到非 hover 态。减弱动态效果由全局 media 统一降级 ── */
+
+/* 通用：整体上跳 + 顺/逆摆头 + 缩放过冲的弹簧摇摆（Kimi 0.42s 曲线简化版） */
+@keyframes tm-fx-wobble-kf {
+  0%   { transform: translateY(0) rotate(0deg) scale(1); }
+  30%  { transform: translateY(-10%) rotate(10deg) scale(1.1); }
+  55%  { transform: translateY(0) rotate(-8deg) scale(1.05); }
+  78%  { transform: translateY(0) rotate(3deg) scale(1.02); }
+  100% { transform: translateY(0) rotate(0deg) scale(1); }
+}
+.tm-fx-wobble:hover > svg {
+  animation: tm-fx-wobble-kf 0.46s cubic-bezier(0.34, 1.56, 0.64, 1) 1 both;
+}
+
+/* Ellipsis 专用：三个圆点波浪跳（lucide ellipsis 的 circle 顺序为 中、右、左，
+   中点先跳、两侧 0.12s 后跟上，像图标「眨了下眼」） */
+@keyframes tm-fx-dot-kf {
+  0%, 100% { transform: translateY(0); }
+  35%      { transform: translateY(-3.5px); }
+  70%      { transform: translateY(0.5px); }
+}
+.tm-fx-dots > svg circle {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.tm-fx-dots:hover > svg circle {
+  animation: tm-fx-dot-kf 0.5s ease-in-out 1 both;
+}
+.tm-fx-dots:hover > svg circle:nth-child(2),
+.tm-fx-dots:hover > svg circle:nth-child(3) {
+  animation-delay: 0.12s;
+}
+
+/* ── 键盘焦点环兜底：仅键盘 Tab 可见，鼠标点击不出现；
+   组件级 .x:focus-visible（特异性更高）可覆盖此兜底 ── */
+button:focus-visible,
+[role="button"]:focus-visible,
+summary:focus-visible {
+  outline: none;
+  box-shadow: var(--dsw-focus-ring);
+}
+
+/* ── 尊重系统「减少动态效果」：全站动效降级为近乎瞬时，保留状态切换 ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

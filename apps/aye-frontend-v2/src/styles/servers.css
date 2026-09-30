@@ -1,0 +1,149 @@
+/* ============================================================
+   Servers（服务器管理页）样式
+   ============================================================ */
+
+.servers-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 16px;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.servers-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.servers-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* ---- 表单卡片 ---- */
+.server-form-card {
+  background: var(--dsw-alias-bg-layer-1);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  padding: 14px;
+  flex-shrink: 0;
+}
+
+.server-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.server-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.server-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.server-auth-switch {
+  display: flex;
+  gap: 6px;
+}
+
+/* ---- 列表 ---- */
+.server-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.server-card {
+  background: var(--dsw-alias-bg-layer-1);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.server-card-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.server-card-info {
+  min-width: 0;
+}
+
+.server-card-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.server-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.server-status-dot.connected { background: var(--dsw-alias-state-success-primary); }
+.server-status-dot.error { background: var(--dsw-alias-state-error-primary); }
+.server-status-dot.connecting { background: var(--dsw-alias-state-warn-primary); }
+.server-status-dot.disconnected { background: var(--dsw-alias-state-neutral-primary); }
+
+.server-card-meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-tertiary);
+  font-family: var(--ds-font-family-code, 'JetBrains Mono, Menlo, monospace');
+}
+
+.server-card-error {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.server-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.server-conn-connected {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.server-pw-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--dsw-alias-border-l1);
+}
+
+.server-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 0;
+  text-align: center;
+}
