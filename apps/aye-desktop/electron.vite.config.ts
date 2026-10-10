@@ -2,8 +2,8 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import { loadConfigFromFile } from 'vite'
 import { resolve } from 'path'
 
-const frontendConfigPath = resolve(__dirname, '../aye-frontend-v2/vite.config.ts')
-const frontendRoot = resolve(__dirname, '../aye-frontend-v2')
+const frontendConfigPath = resolve(__dirname, '../aye-frontend/vite.config.ts')
+const frontendRoot = resolve(__dirname, '../aye-frontend')
 
 export default defineConfig(async ({ command, mode }) => {
   const loaded = await loadConfigFromFile({ command, mode }, frontendConfigPath, frontendRoot)

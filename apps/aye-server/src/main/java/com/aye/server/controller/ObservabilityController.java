@@ -1,5 +1,6 @@
-package com.aye.server.observability;
+package com.aye.server.controller;
 
+import com.aye.server.observability.ObservabilityProjection;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;

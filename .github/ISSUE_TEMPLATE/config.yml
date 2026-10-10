@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 使用讨论与问答
+    url: https://github.com/WuJunNan-fjy/aye-aye/discussions
+    about: 使用问题、经验交流请发 Discussions

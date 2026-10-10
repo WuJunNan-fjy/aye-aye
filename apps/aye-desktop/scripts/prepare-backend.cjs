@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * 桌面端后端制品准备（打包前置步骤，npm run dist 前自动执行）：
- *   1. 在仓库根执行 mvn package，产出 Spring Boot fat jar
+ *   1. 在仓库根执行 mvnw package，产出 Spring Boot fat jar
  *   2. 复制 apps/aye-server/target/aye-server-*.jar → build/backend/server.jar
  *   3. 用 JAVA_HOME 下的 jlink 裁剪 JRE → build/runtime（含 jdk.crypto.ec）
  *
@@ -82,10 +82,15 @@ function resolveJdkBin(tool) {
 }
 
 function step1_mavenPackage() {
-  console.log('[prepare-backend] 1/3 mvn package（仓库根，跳过测试）...')
-  // Windows 上 mvn 是 .cmd 批处理，Node 18.20+/20+ 安全策略要求 shell:true 才能 spawn
-  const mvn = process.platform === 'win32' ? 'mvn.cmd' : 'mvn'
-  run(mvn, ['-q', '-DskipTests', 'package'], { cwd: REPO_ROOT, shell: true })
+  console.log('[prepare-backend] 1/3 mvnw package（仓库根，跳过测试）...')
+  // 使用 Maven Wrapper，构建机无需预装 Maven；
+  // Windows 上 mvnw.cmd 是批处理、Node 18.20+/20+ 安全策略要求 shell:true 才能 spawn；
+  // 非 Windows 用 sh mvnw 调用，规避仓库检出时的可执行位问题。
+  if (process.platform === 'win32') {
+    run('mvnw.cmd', ['-q', '-DskipTests', 'package'], { cwd: REPO_ROOT, shell: true })
+  } else {
+    run('sh', ['mvnw', '-q', '-DskipTests', 'package'], { cwd: REPO_ROOT })
+  }
 }
 
 function step2_copyJar() {

@@ -4,9 +4,31 @@
 
 # aye-aye
 
+[![CI](../../../actions/workflows/ci.yml/badge.svg)](../../../actions/workflows/ci.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/WuJunNan-fjy/aye-aye?include_prereleases)](https://github.com/WuJunNan-fjy/aye-aye/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 > 简称 **aye** —— AI 驱动的 Linux 服务器运维管理桌面应用。
 
-通过自然语言对话管理远程服务器，支持 SSH 终端、SFTP 文件管理、AI Agent 自动化运维、审计日志等功能。
+通过自然语言对话管理远程服务器：SSH 终端、SFTP 文件管理、AI Agent 自动化运维、本地项目一键部署、全量操作审计。**无云端账号、无遥测，凭据本地加密，LLM 请求由客户端直发模型提供商。**
+
+## 下载
+
+**[⬇ 从 GitHub Releases 下载 Windows 安装包](https://github.com/WuJunNan-fjy/aye-aye/releases/latest)**（最新版自动跳转）
+
+- 支持 Windows 10 / 11（x64），安装包内置裁剪版 JRE，**无需安装 Java**
+- 首发版本未做代码签名，首次安装如出现 SmartScreen 蓝色提示：**「更多信息」→「仍要运行」**
+- macOS / Linux 暂不提供安装包，可从源码自行构建（见下文）
+- 应用内自动更新：新版本发布后启动时提示，用户确认后才下载安装（不经云端、无强制升级）
+
+## 功能一览
+
+- **AI 对话运维**：自研 Agent Loop（纯 Java，零 AI 框架），SSE 流式输出、工具调用卡片、可中断、中途插话、死循环熔断
+- **三档权限**：只读 / 写操作确认 / 全部确认，每次工具执行全量审计可追溯
+- **SSH 终端**：多主机管理、xterm.js 交互式 shell、TOFU 主机密钥信任
+- **SFTP 文件管理**：文件树、在线编辑、200MB 分片上传、拖拽传输
+- **小白一键部署**：项目识别 → 本机构建 → SFTP 上传 → 远程启动探活，全流程可视化阶段卡片
+- **可观测性**：操作日志、Agent Trace、会话轨迹时间线，事件溯源、重启不丢
 
 ## 架构概览
 
@@ -32,7 +54,7 @@
 |------|--------|------|
 | AI 核心 | 纯 Java 17 + Jackson（零 AI 框架，自研 loop） | `packages/aye-ai-core/` |
 | 后端 | Spring Boot 3.4 + JSch + sqlite-jdbc | `apps/aye-server/` |
-| 前端 | React 18 + Ant Design + xterm.js + Zustand | `apps/aye-frontend-v2/` |
+| 前端 | React 18 + Ant Design + xterm.js + Zustand | `apps/aye-frontend/` |
 | 桌面 | Electron 35 + electron-vite + electron-builder | `apps/aye-desktop/` |
 
 ## 项目结构
@@ -62,14 +84,14 @@ aye-aye/
 │   │       ├── ws/               # 交互式终端 WebSocket（/ws/terminal/:sessionId）
 │   │       ├── config/           # Bean 装配 / AppProperties
 │   │       └── web/              # 统一异常 {statusCode, message, code}
-│   ├── aye-frontend-v2/     # React 前端（Vite）
+│   ├── aye-frontend/     # React 前端（Vite）
 │   └── aye-desktop/         # Electron 壳（spawn java -jar sidecar）
 ```
 
 ## 环境要求
 
 - **JDK 17**（后端编译与运行，开发机可配 `JAVA_HOME`）
-- **Maven 3.9+**（后端构建）
+- Maven 无需预装（仓库自带 Maven Wrapper，首次运行自动下载 3.9.9）
 - **Node.js** >= 18 + **pnpm**（前端）
 - **npm**（桌面端）
 
@@ -79,7 +101,7 @@ aye-aye/
 
 ```powershell
 $env:MAVEN_OPTS="-Dfile.encoding=UTF-8"
-mvn -pl apps/aye-server -am package -DskipTests
+.\mvnw.cmd -pl apps/aye-server -am package -DskipTests
 # 产物：apps/aye-server/target/aye-server-0.0.1-SNAPSHOT.jar（fat jar）
 ```
 
@@ -105,7 +127,7 @@ java -jar apps/aye-server/target/aye-server-0.0.1-SNAPSHOT.jar --server.port=808
 
 ```bash
 # 前端
-cd apps/aye-frontend-v2 && pnpm install && pnpm dev
+cd apps/aye-frontend && pnpm install && pnpm dev
 
 # 桌面端（自动探测 5173-5178 的前端 dev server；若 8080 已有后端则复用，否则 spawn java sidecar）
 cd apps/aye-desktop && npm install && npm run dev
@@ -153,23 +175,23 @@ start(sessionId) → (thinking | text | tool_call | tool_result)* → (error | d
 
 ### 后端
 
-`mvn -pl apps/aye-server -am package -DskipTests` → fat jar。
+`./mvnw -pl apps/aye-server -am package -DskipTests`（Windows 用 `.\mvnw.cmd`）→ fat jar。
 
 ### 前端
 
-`cd apps/aye-frontend-v2 && pnpm build`。
+`cd apps/aye-frontend && pnpm build`。
 
 ### 桌面端
 
 ```bash
 cd apps/aye-desktop
-npm run dist    # 自动 prepare-backend（mvn package + jlink）→ electron-vite build → NSIS 安装包
+npm run dist    # 自动 prepare-backend（mvnw package + jlink）→ electron-vite build → NSIS 安装包
 ```
 
-`npm run dist` 会先执行 `scripts/prepare-backend.cjs`（构建机需 JDK 17+ 与 Maven，普通用户机器无需 Java 环境）：
+`npm run dist` 会先执行 `scripts/prepare-backend.cjs`（构建机只需 JDK 17+，Maven 由仓库内 `mvnw` 提供；普通用户机器无需 Java 环境）：
 
-- `mvn package` 产出 fat jar，复制为 `resources/backend/server.jar`（extraResources，asar 外）
-- jlink 裁剪 JRE 到 `resources/runtime/bin/java.exe`（含 `jdk.crypto.ec`，构建机跨平台生成）
+- `mvnw package` 产出 fat jar，复制为 `resources/backend/server.jar`（extraResources，asar 外）
+- jlink 裁剪 JRE 到 `resources/runtime/bin/java.exe`（含 `jdk.crypto.ec`）；jlink 只能产出**构建机所在平台**的运行时，因此官方发行包目前只在 Windows runner 上构建、仅提供 Windows x64
 - 布局只此一种约定；开发态找不到内置 runtime 时回退 `AYE_JAVA` / `JAVA_HOME` / PATH
 
 ## 数据存储

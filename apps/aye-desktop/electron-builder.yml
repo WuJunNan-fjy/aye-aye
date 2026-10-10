@@ -1,15 +1,15 @@
 appId: com.aye.app
 productName: Aye
-copyright: Copyright © 2026 Aye
+copyright: Copyright © 2026 aye-aye contributors
 asar: true
-# 动态更新源（electron-updater generic provider）：
-# 打包时会把此地址写进 resources/app-update.yml，客户端启动后 GET <url>/latest.yml 比对版本。
-# ⚠️ 占位地址，发版前替换为真实静态目录（nginx/对象存储均可），并把每次构建生成的
-#    latest.yml + 安装包（Aye Setup x.y.z.exe 及其 .blockmap）一并上传到该目录。
+# 动态更新源（electron-updater GitHub provider）：
+# 打包时写入 resources/app-update.yml，客户端启动后通过 GitHub Releases API
+# 读取最新 Release 中的 latest.yml 比对版本；安装包与 blockmap 也从 Release 下载。
+# release.yml 在推送 v* 标签时自动构建并创建草稿 Release。
 publish:
-  - provider: generic
-    url: https://update.example.com/aye/win/
-    channel: latest
+  - provider: github
+    owner: WuJunNan-fjy
+    repo: aye-aye
 directories:
   output: dist
   buildResources: build
@@ -31,18 +31,15 @@ extraResources:
     to: build/icon.ico
   - from: build/icon.png
     to: build/icon.png
+# v0.1.0 首发仅 Windows x64：
+# jlink 只能产出构建机所在平台的 JRE，mac dmg / linux AppImage 必须分别在
+# macOS / Linux runner 上构建（未来用三平台 matrix 扩展，届时再补 mac/linux 段与 icon.icns）。
 win:
   target:
-    - nsis
+    - target: nsis
+      arch:
+        - x64
   icon: build/icon.ico
-mac:
-  target:
-    - dmg
-  icon: build/icon.icns
-linux:
-  target:
-    - AppImage
-  icon: build/icon.png
 nsis:
   oneClick: false
   perMachine: false

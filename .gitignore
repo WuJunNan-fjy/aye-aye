@@ -66,8 +66,8 @@ _db_backup/
 electron.vite.config.*.mjs
 
 # vite.config.ts 的 composite 编译产物（tsconfig.node.json 会 emit，勿提交）
-apps/aye-frontend-v2/vite.config.js
-apps/aye-frontend-v2/vite.config.d.ts
+apps/aye-frontend/vite.config.js
+apps/aye-frontend/vite.config.d.ts
 
 # 运行时本地目录（sqlite-jdbc 原生库解压等）
 /build/

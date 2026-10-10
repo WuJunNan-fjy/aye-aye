@@ -44,7 +44,7 @@ export default function SettingsAboutPage() {
         <div className="settings-section-title">复刻说明</div>
         <div style={{ fontSize: 13, lineHeight: '22px', color: 'var(--dsw-alias-label-secondary)' }}>
           <div>• 原有 <code style={{ padding: '1px 5px', background: 'var(--dsw-alias-markdown-inline-code)', borderRadius: 4 }}>apps/aye-frontend</code> 保持不动，作为生产稳定版。</div>
-          <div>• 本工程 <code style={{ padding: '1px 5px', background: 'var(--dsw-alias-markdown-inline-code)', borderRadius: 4 }}>apps/aye-frontend-v2</code> 从零搭建，样式与组件按 deepseek-harness 原源码 1:1 迁移，不依赖 Cordis。</div>
+          <div>• 本工程 <code style={{ padding: '1px 5px', background: 'var(--dsw-alias-markdown-inline-code)', borderRadius: 4 }}>apps/aye-frontend</code> 从零搭建，样式与组件按 deepseek-harness 原源码 1:1 迁移，不依赖 Cordis。</div>
           <div>• UI 组件 token 体系完全保留 <code style={{ padding: '1px 5px', background: 'var(--dsw-alias-markdown-inline-code)', borderRadius: 4 }}>--dsw-alias-* / --dsw-static-*</code> 两套变量，支持浅/深双主题。</div>
         </div>
       </div>

@@ -32,7 +32,7 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Jackson：termind-ai-core 用，显式定版避免与 Spring Boot BOM 冲突 -->
+            <!-- Jackson：aye-ai-core 用，显式定版避免与 Spring Boot BOM 冲突 -->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>

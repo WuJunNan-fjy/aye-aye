@@ -1,15 +1,26 @@
 {
   "name": "aye-desktop",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
+  "description": "aye-aye desktop app - AI-driven Linux server operations over SSH",
+  "author": "WuJunNan-fjy",
+  "license": "MIT",
+  "homepage": "https://github.com/WuJunNan-fjy/aye-aye#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WuJunNan-fjy/aye-aye.git"
+  },
+  "bugs": {
+    "url": "https://github.com/WuJunNan-fjy/aye-aye/issues"
+  },
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev -- --remote-debugging-port=9223",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "prepare:backend": "node scripts/prepare-backend.cjs",
-    "dist": "node scripts/prepare-backend.cjs && electron-vite build && electron-builder",
-    "dist:dir": "node scripts/prepare-backend.cjs && electron-vite build && electron-builder --dir",
+    "dist": "node scripts/prepare-backend.cjs && electron-vite build && electron-builder --publish never",
+    "dist:dir": "node scripts/prepare-backend.cjs && electron-vite build && electron-builder --dir --publish never",
     "build:icon": "node scripts/build-icon.js"
   },
   "dependencies": {
