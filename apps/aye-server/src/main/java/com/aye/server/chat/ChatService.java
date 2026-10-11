@@ -29,6 +29,7 @@ import com.aye.server.ssh.SshSessionManager;
 import com.aye.server.storage.AuditStore;
 import com.aye.server.storage.HostStore;
 import com.aye.server.storage.ModelProviderStore;
+import com.aye.server.storage.ModelProviderStore.CatalogModel;
 import com.aye.server.storage.ModelProviderStore.DefaultRef;
 import com.aye.server.storage.ModelProviderStore.Provider;
 import com.aye.server.storage.SessionStore;
@@ -324,7 +325,9 @@ public final class ChatService {
         String turnModelId = null;
 
         try {
-            LlmProviderConfig provider = resolveProvider(req.provider(), req.modelId());
+            ResolvedModel resolved = resolveModel(req.provider(), req.modelId());
+            LlmProviderConfig provider = resolved.config();
+            CatalogModel catalog = resolved.catalog();
             if (provider.apiKey() == null || provider.apiKey().isBlank()) {
                 // v2 在 start() 已同步校验，此处理论不可达；v1 保持 SSE error 行为。
                 pushError(emitter,
@@ -480,11 +483,17 @@ public final class ChatService {
 
             // 中途插话供应器：AgentLoop 步边界 drain，多条指示合并成一段返回
             ConcurrentLinkedQueue<String> interjectionQueue = interjectionQueues.get(sessionId);
+            // 模型目录中配置的上下文窗口/最大输出透传给 AgentLoop：
+            // 上下文窗口决定 ContextCompactor 的压缩阈值（缺省 128K，对 32K 小窗口模型会失效）；
+            // 最大输出覆盖应用级默认（TruncationHandler 与 LLM 请求共用）。
+            Integer catalogMaxOutput = catalog != null ? catalog.maxTokens() : null;
+            Integer maxOutputTokens = catalogMaxOutput != null ? catalogMaxOutput : props.getMaxOutputTokens();
             AgentLoopOptions options = new AgentLoopOptions()
                     .aborted(aborted::get)
                     .toolContext(ctx)
                     .maxSteps(props.getMaxSteps())
-                    .maxOutputTokens(props.getMaxOutputTokens())
+                    .maxOutputTokens(maxOutputTokens)
+                    .contextWindowTokens(catalog == null ? null : catalog.contextWindow())
                     .systemSupplement(systemSupplement)
                     .envSupplement(hostSnapshot)
                     .interjections(() -> drainInterjections(interjectionQueue))
@@ -627,12 +636,19 @@ public final class ChatService {
         return sb.length() == 0 ? null : sb.toString();
     }
 
-    /**
-     * 解析厂商配置 → {@link LlmProviderConfig}。
-     * provider + modelId 都指定时用指定值，否则落到全局默认模型；
-     * 完全没有配置时兜底到 application.yml 的默认值。
-     */
+    /** provider 配置 + 命中的目录模型项（目录未收录该模型时 catalog 为 null）。 */
+    private record ResolvedModel(LlmProviderConfig config, CatalogModel catalog) {}
+
     private LlmProviderConfig resolveProvider(String providerId, String modelId) {
+        return resolveModel(providerId, modelId).config();
+    }
+
+    /**
+     * 解析厂商配置与目录模型。
+     * provider + modelId 都指定时用指定值，否则落到全局默认模型；
+     * 完全没有配置时兜底到 application.yml 的默认值（catalog 为 null）。
+     */
+    private ResolvedModel resolveModel(String providerId, String modelId) {
         Provider p = null;
         String mid = modelId;
         if (providerId != null && !providerId.isBlank() && mid != null && !mid.isBlank()) {
@@ -646,15 +662,23 @@ public final class ChatService {
         }
         if (p == null) {
             // 兜底：无模型配置时用 application.yml 里的默认值
-            return LlmProviderConfig.builder(props.getDefaultModel(), props.getDefaultBaseUrl(), props.getDefaultApiKey())
-                    .build();
+            return new ResolvedModel(LlmProviderConfig.builder(
+                    props.getDefaultModel(), props.getDefaultBaseUrl(), props.getDefaultApiKey())
+                    .build(), null);
         }
         String baseUrl = (p.baseUrl() == null || p.baseUrl().isBlank())
                 ? vendorBaseUrl(p.id(), props.getDefaultBaseUrl()) : p.baseUrl();
         String apiKey = (p.apiKey() == null || p.apiKey().isBlank()) ? props.getDefaultApiKey() : p.apiKey();
-        return LlmProviderConfig.builder(mid, baseUrl, apiKey)
+        LlmProviderConfig config = LlmProviderConfig.builder(mid, baseUrl, apiKey)
                 .authHeaderKind(providerToAuthKind(p.id()))
                 .build();
+        // 命中目录模型（contextWindow / maxTokens 由此进入压缩器与输出预算）；
+        // 目录里没有的临时模型 id 返回 null，由调用方走默认值。
+        String finalMid = mid;
+        CatalogModel catalog = p.models().stream()
+                .filter(m -> m.modelId().equals(finalMid))
+                .findFirst().orElse(null);
+        return new ResolvedModel(config, catalog);
     }
 
     private static String vendorBaseUrl(String providerId, String fallback) {
