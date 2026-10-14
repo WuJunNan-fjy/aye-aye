@@ -5,10 +5,16 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   backend:
     name: Backend (mvn test)
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -18,7 +24,11 @@ jobs:
           java-version: '17'
           cache: maven
       - name: Run tests
+        if: runner.os != 'Windows'
         run: chmod +x mvnw && ./mvnw -B -ntp test
+      - name: Run tests (Windows)
+        if: runner.os == 'Windows'
+        run: .\mvnw.cmd -B -ntp test
 
   frontend:
     name: Frontend (tsc + vite build)
@@ -35,10 +45,31 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: pnpm
           cache-dependency-path: apps/aye-frontend/pnpm-lock.yaml
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Type-check and build
         run: pnpm build
+
+  desktop:
+    name: Desktop build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install frontend dependencies
+        working-directory: apps/aye-frontend
+        run: pnpm install --frozen-lockfile
+      - name: Install desktop dependencies
+        working-directory: apps/aye-desktop
+        run: npm ci
+      - name: Build desktop
+        working-directory: apps/aye-desktop
+        run: npm run build

@@ -23,7 +23,7 @@ export default defineConfig({
   },
   server: {
     port: 5174,
-    host: true, // 监听所有网卡，局域网设备可通过本机 IP 访问
+    host: '127.0.0.1',
     strictPort: false,
   },
 })

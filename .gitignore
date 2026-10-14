@@ -75,3 +75,8 @@ apps/aye-frontend/vite.config.d.ts
 opencode/
 
 # 锁文件：前端用 pnpm（pnpm-lock.yaml），桌面端用 npm（package-lock.json），各自保留
+apps/aye-frontend/package-lock.json
+apps/aye-desktop/pnpm-lock.yaml
+
+# 开源发布前的本地干净副本与归档
+/.opensource/

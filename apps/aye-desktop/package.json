@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@types/archiver": "^8.0.0",
-    "electron": "^35.7.5",
+    "electron": "^44.7.2",
     "electron-builder": "^25.0.0",
     "electron-vite": "^3.0.0",
     "png-to-ico": "^3.0.2",

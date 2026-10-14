@@ -57,6 +57,10 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
             <!-- 让 fat jar 清单带上 Implementation-Version，供启动握手行输出版本 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

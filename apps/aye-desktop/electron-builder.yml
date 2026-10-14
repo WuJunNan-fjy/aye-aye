@@ -18,6 +18,10 @@ files:
   - build/icon.ico
   - build/icon.png
 extraResources:
+  - from: ../../THIRD_PARTY_NOTICES.md
+    to: THIRD_PARTY_NOTICES.md
+  - from: ../../LICENSE
+    to: LICENSE.aye-aye
   # 后端 jar 与 jlink 运行时由 scripts/prepare-backend.cjs 生成，只走 extraResources（asar 外，java 进程可直接读）
   - from: build/backend
     to: backend

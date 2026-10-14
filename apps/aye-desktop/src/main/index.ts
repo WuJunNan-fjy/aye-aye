@@ -162,7 +162,7 @@ function startBackend(): Promise<void> {
 
     // 开发模式：检测是否已有后端在 8080 端口运行
     const existingPort = 8080
-    if (await checkExistingBackend(existingPort)) {
+    if (!app.isPackaged && await checkExistingBackend(existingPort)) {
       console.log(`[startBackend] 复用本机后端 :${existingPort}，不 spawn`)
       externalBackend = true
       backendPort = existingPort
@@ -890,7 +890,7 @@ ipcMain.handle('aye:set-credential', async (_event, account: string, password: s
     const encrypted = safeStorage.encryptString(password)
     creds[account] = encrypted.toString('base64')
   } else {
-    creds[account] = Buffer.from(password).toString('base64')
+    throw new Error('系统凭据加密不可用，无法保存密码。请仅在当前连接中使用密码。')
   }
   writeCredentials(creds)
 })
@@ -902,7 +902,7 @@ ipcMain.handle('aye:get-credential', async (_event, account: string) => {
   if (safeStorage.isEncryptionAvailable()) {
     return safeStorage.decryptString(Buffer.from(value, 'base64'))
   }
-  return Buffer.from(value, 'base64').toString('utf-8')
+  throw new Error('系统凭据加密不可用，无法读取保存的密码。请重新输入连接密码。')
 })
 
 ipcMain.handle('aye:delete-credential', async (_event, account: string) => {

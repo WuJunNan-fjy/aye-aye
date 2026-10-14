@@ -8,9 +8,11 @@
 [![GitHub Release](https://img.shields.io/github/v/release/WuJunNan-fjy/aye-aye?include_prereleases)](https://github.com/WuJunNan-fjy/aye-aye/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-> 简称 **aye** —— AI 驱动的 Linux 服务器运维管理桌面应用。
+> 简称 **aye** —— AI 驱动的 Linux 服务器运维管理桌面应用（早期版本）。
 
-通过自然语言对话管理远程服务器：SSH 终端、SFTP 文件管理、AI Agent 自动化运维、本地项目一键部署、全量操作审计。**无云端账号、无遥测，凭据本地加密，LLM 请求由客户端直发模型提供商。**
+通过自然语言对话管理远程服务器：SSH 终端、SFTP 文件管理、AI Agent 自动化运维、本地项目一键部署、AI 工具操作审计。**无云端账号、无遥测，LLM 请求从本机直接发送给你配置的模型提供商。**
+
+请先在测试主机上试用，核对 AI 提议的命令后再批准执行。模型 API Key 当前保存在本机 SQLite 中，尚未加密；不要公开或分享运行数据目录。详细数据边界见 [安全策略](SECURITY.md)。
 
 ## 下载
 
@@ -32,7 +34,7 @@
 
 ## 架构概览
 
-后端为 **Java（Spring Boot 薄壳）**，AI 核心是**零框架自研 Agent Loop**（翻译自 DeepWork `packages/ai`），随 Electron 以 sidecar 方式启动。
+后端为 **Java（Spring Boot 薄壳）**，AI 核心是**零 AI 框架的 Agent Loop**（由维护者自有 DeepWork 项目演进而来），随 Electron 以 sidecar 方式启动。前端参考并改造了 DeepSeek Harness 的界面与交互体系，来源及许可见 [第三方声明](THIRD_PARTY_NOTICES.md)。
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -55,7 +57,7 @@
 | AI 核心 | 纯 Java 17 + Jackson（零 AI 框架，自研 loop） | `packages/aye-ai-core/` |
 | 后端 | Spring Boot 3.4 + JSch + sqlite-jdbc | `apps/aye-server/` |
 | 前端 | React 18 + Ant Design + xterm.js + Zustand | `apps/aye-frontend/` |
-| 桌面 | Electron 35 + electron-vite + electron-builder | `apps/aye-desktop/` |
+| 桌面 | Electron 44 + electron-vite + electron-builder | `apps/aye-desktop/` |
 
 ## 项目结构
 
@@ -92,7 +94,7 @@ aye-aye/
 
 - **JDK 17**（后端编译与运行，开发机可配 `JAVA_HOME`）
 - Maven 无需预装（仓库自带 Maven Wrapper，首次运行自动下载 3.9.9）
-- **Node.js** >= 18 + **pnpm**（前端）
+- **Node.js** >= 22.12 + **pnpm 10**（前端）
 - **npm**（桌面端）
 
 ## 快速开始
@@ -111,7 +113,7 @@ $env:MAVEN_OPTS="-Dfile.encoding=UTF-8"
 java -jar apps/aye-server/target/aye-server-0.0.1-SNAPSHOT.jar --server.port=8080
 ```
 
-启动成功后输出 `Aye backend running on http://127.0.0.1:8080`。
+启动成功后输出 `AYE_READY {"port":8080,"pid":...,"version":...}`；端口取实际监听值。
 
 常用环境变量（Electron sidecar 自动注入，手动运行可选）：
 
@@ -119,9 +121,9 @@ java -jar apps/aye-server/target/aye-server-0.0.1-SNAPSHOT.jar --server.port=808
 |------|------|
 | `PORT` | 监听端口（0 = 随机） |
 | `AYE_DATA_DIR` | 数据目录（SQLite 存放处，默认 `~/.aye`） |
-| `AYE_API_TOKEN` | API token（WebSocket 终端握手校验） |
+| `AYE_API_TOKEN` | API token（REST 与 WebSocket 校验；手动运行时不设置则不启用鉴权） |
 
-模型与 API Key 不再走 `.env`，在应用「模型设置」里配置（`/api/models` 增删改查，key 脱敏存储于 SQLite）。
+模型与 API Key 在应用「模型设置」里配置。接口不回传完整 key，但 SQLite 中的 key 当前为明文；接口脱敏不等于存储加密。
 
 ### 3. 启动前端与桌面端
 
@@ -147,8 +149,8 @@ cd apps/aye-desktop && npm install && npm run dev
 | Agent | `POST /api/agent/chat/stream` | AI 对话（SSE 流式） |
 | Agent 模式 | `/api/agent/mode` | readonly / write_confirm / all_confirm |
 | 模型 | `/api/models` | 模型 CRUD + key 脱敏（hasKey） |
-| 审计 | `/api/audit`、`/stats`、`/tools` | 工具调用审计 |
-| 快捷指令 | `/api/quick-commands` | 全局/按主机 |
+| Agent 回合 | `/api/v2/agent/turns`、`/cancel` | 创建与取消回合 |
+| 可观测性 | `/api/observability/*` | 操作记录、回合及会话轨迹 |
 | 设置 | `/api/settings` | 应用设置（kv） |
 
 ### SSE 事件格式（`/api/agent/chat/stream`）
@@ -199,14 +201,20 @@ npm run dist    # 自动 prepare-backend（mvnw package + jlink）→ electron-v
 - jlink 裁剪 JRE 到 `resources/runtime/bin/java.exe`（含 `jdk.crypto.ec`）；jlink 只能产出**构建机所在平台**的运行时，因此官方发行包目前只在 Windows runner 上构建、仅提供 Windows x64
 - 布局只此一种约定；开发态找不到内置 runtime 时回退 `AYE_JAVA` / `JAVA_HOME` / PATH
 
+产品版本以 `apps/aye-desktop/package.json` 为准，发布标签必须为对应的 `v<版本>`。Maven 的 `0.0.1-SNAPSHOT` 为后端内部构建版本，不代表安装包版本。发布流程先执行后端测试和前端类型检查，再生成草稿安装包。
+
 ## 数据存储
 
 | 数据 | 存储位置 | 说明 |
 |------|----------|------|
 | 会话/消息（聊天记录） | SQLite（`AYE_DATA_DIR/aye.db`） | 按 sessionId，含轻量 schema 迁移 |
 | 主机 / 审计 / 设置 / 快捷指令 / 模型+key | SQLite（同上） | 持久化 |
-| SSH 凭据 | Electron safeStorage | 系统级加密 |
+| SSH 连接凭据 | 当前连接与会话的内存 | 当前界面不自动保存密码，重启后重新输入；桌面凭据保存接口仅在系统加密可用时允许保存 |
+
+对话、命令输出、文件内容和服务器信息可能作为上下文发送到你选择的模型提供商；网页搜索工具还会向搜索服务发送查询。模型服务可能收费，费用及数据处理由对应提供商决定。
+
+桌面版本使用 Electron 的应用数据目录保存本地数据，源码运行默认使用 `~/.aye`。卸载默认保留应用数据；备份、截图和日志也可能含敏感内容，分享前请脱敏。
 
 ## License
 
-MIT
+MIT。第三方来源与许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
