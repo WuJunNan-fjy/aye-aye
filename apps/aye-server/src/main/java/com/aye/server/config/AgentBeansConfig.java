@@ -399,11 +399,12 @@ public class AgentBeansConfig {
                                    LocalAttachmentRegistry localAttachmentRegistry,
                                    WorkspaceStore workspaceStore,
                                    LocalCommandClassifier localCommandClassifier,
-                                   LocalPathAuthority localPathAuthority) {
+                                   LocalPathAuthority localPathAuthority,
+                                   SettingsStore settingsStore) {
         return new ChatService(sessionStore, modelProviderStore, props, toolRegistry,
                 auditStore, hostStore, interactionHub, sessionCommandGrants,
                 sessionEventManager, sshSessionManager, localAttachmentRegistry,
-                workspaceStore, localCommandClassifier, localPathAuthority);
+                workspaceStore, localCommandClassifier, localPathAuthority, settingsStore);
     }
 
     /**

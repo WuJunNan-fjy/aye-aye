@@ -33,6 +33,7 @@ import com.aye.server.storage.ModelProviderStore.CatalogModel;
 import com.aye.server.storage.ModelProviderStore.DefaultRef;
 import com.aye.server.storage.ModelProviderStore.Provider;
 import com.aye.server.storage.SessionStore;
+import com.aye.server.storage.SettingsStore;
 import com.aye.server.web.ApiException;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -84,12 +85,9 @@ public final class ChatService {
     private final com.aye.server.config.LocalPathAuthority pathAuthority;
     /** 项目（工作区）存储：会话绑定的工作区根。 */
     private final WorkspaceStore workspaceStore;
-    /** 本机命令分级器：run_local_async 的自动批准/硬拒绝依据。 */
+    /** 本机命令分级器：仅用于硬拒绝，不能替代人工批准。 */
     private final LocalCommandClassifier commandClassifier;
-
-    /** 后端构造命令、参数经严格校验的部署工具：审批回调自动放行。 */
-    private static final java.util.Set<String> AUTO_APPROVE_TOOLS = java.util.Set.of(
-            "deploy_upload", "deploy_extract_remote", "deploy_start_remote");
+    private final SettingsStore settingsStore;
 
     /** 用户显式进入部署模式时注入系统提示的「一键部署」流水线指令。 */
     private static final String DEPLOY_SUPPLEMENT = """
@@ -163,7 +161,8 @@ public final class ChatService {
                        LocalAttachmentRegistry localAttachments,
                        WorkspaceStore workspaceStore,
                        LocalCommandClassifier commandClassifier,
-                       com.aye.server.config.LocalPathAuthority pathAuthority) {
+                       com.aye.server.config.LocalPathAuthority pathAuthority,
+                       SettingsStore settingsStore) {
         this.sessionStore = sessionStore;
         this.modelStore = modelStore;
         this.props = props;
@@ -178,6 +177,7 @@ public final class ChatService {
         this.workspaceStore = workspaceStore;
         this.commandClassifier = commandClassifier;
         this.pathAuthority = pathAuthority;
+        this.settingsStore = settingsStore;
     }
 
     /**
@@ -186,7 +186,8 @@ public final class ChatService {
      * <p>emitter completion/timeout 即置 RunHandle 取消信号——浏览器断连/刷新仍立即中止 agent，
      * 审批等待中断连仍按拒绝（见交互闭包）。事件实时出口为 SseEmitter。
      */
-    public SseEmitter stream(ChatRequest req) {
+    public SseEmitter stream(ChatRequest input) {
+        ChatRequest req = resolveRequest(input);
         SseEmitter emitter = new SseEmitter(0L); // 无超时，由客户端或 Agent 结束
         String sessionId = (req.sessionId() == null || req.sessionId().isBlank())
                 ? UUID.randomUUID().toString() : req.sessionId();
@@ -229,7 +230,8 @@ public final class ChatService {
      * <p>同步完成参数/互斥/Key/线程池校验后返回 202，agent 事件只写事件日志
      * （前端经 GET events 订阅），调用方断开 HTTP 不产生任何中止信号。
      */
-    public StartResult start(ChatRequest req) {
+    public StartResult start(ChatRequest input) {
+        ChatRequest req = resolveRequest(input);
         if (req.message() == null || req.message().isBlank()) {
             throw new IllegalArgumentException("消息内容不能为空");
         }
@@ -362,7 +364,7 @@ public final class ChatService {
             // 审计走 SQLite 落库：每个工具执行留痕到 audit_logs，供「日志中心」页查询。
             ToolContext ctx = BuiltinTools.initializeToolRuntime(
                     toolRegistry, sessionId, props.getCwd(), parseTrustLevel(req.mode()), aborted::get, null,
-                    new SqliteAuditLedger(auditStore, hostStore, resolveExecutionMode(req.mode())));
+                    new SqliteAuditLedger(auditStore, hostStore, req.mode()));
             // executionMode 透传到权限引擎：readonly 模式下写/执行工具被拒绝
             ctx.executionMode(req.mode());
 
@@ -390,6 +392,7 @@ public final class ChatService {
                 workspaceStore.bindSession(sessionId, ws.id());
                 localAttachments.registerDirectory(sessionId, ws.canonicalPath());
             }
+            sessionGrants.prepare(sessionId, req.mode(), workspaceScope(sessionId));
 
             // 交互确认通道 + 主动询问通道：挂到 ToolContext，AgentLoop 的工具执行器
             // 在命中 Confirm/ask_user 时调用，阻塞等待前端经 REST 回传（见 PendingInteractionHub）。
@@ -402,20 +405,22 @@ public final class ChatService {
                         List<DestructiveTag> tags, JsonNode input) {
                     List<String> tagNames = tags == null ? List.of()
                             : tags.stream().map(String::valueOf).toList();
+                    // 本机危险命令的硬拒绝先于记住授权；安全分级不再自动批准操作。
+                    if (isLocalCommandDenied(toolName, input)) {
+                        recorder.confirmResolved(confirmId, toolName,
+                                "[本机安全规则拒绝] " + message, tagNames, input, false);
+                        return ToolContext.UserConfirmResult.decided(false, false);
+                    }
+                    String scope = workspaceScope(sessionId);
+                    sessionGrants.prepare(sessionId, req.mode(), scope);
+                    // 全确认和带风险标签的强制确认不能被记住授权绕过。
+                    boolean canRemember = "write_confirm".equals(req.mode()) && tagNames.isEmpty();
                     // 会话级授权短路：用户此前勾选「本会话相同操作不再询问」且参数完全一致 → 直接放行，
                     // 不再推 confirmation_request 卡片（审计决议仍由 ToolExecutor 按 USER 批准落账）。
-                    if (sessionGrants.isGranted(sessionId, toolName, input)) {
+                    if (canRemember && sessionGrants.isGranted(sessionId, req.mode(), scope, toolName, input)) {
                         recorder.confirmResolved(confirmId, toolName,
                                 "[本会话已授权，自动放行] " + message, tagNames, input, true);
                         return ToolContext.UserConfirmResult.decided(true, true);
-                    }
-                    // 部署工具自动决议：后端构造命令的工具放行；run_local_async 按分级器决定
-                    Boolean auto = automaticDeployDecision(toolName, input);
-                    if (auto != null) {
-                        recorder.confirmResolved(confirmId, toolName,
-                                (auto ? "[部署安全规则自动放行] " : "[部署安全规则自动拒绝] ")
-                                        + message, tagNames, input, auto);
-                        return ToolContext.UserConfirmResult.decided(auto, false);
                     }
                     if (live) {
                         try {
@@ -435,14 +440,17 @@ public final class ChatService {
                                 "[等待超时，自动拒绝] " + message, tagNames, input, false);
                         return ToolContext.UserConfirmResult.timedOut();
                     }
-                    boolean approved = st.approved();
+                    boolean scopeUnchanged = scope.equals(workspaceScope(sessionId));
+                    boolean approved = st.approved() && scopeUnchanged;
+                    if (!scopeUnchanged) message = "[项目已变更，本次批准失效] " + message;
                     // 批准且勾选记住：登记为会话级授权，后续完全相同的命令/参数不再询问
-                    if (approved && st.remembered()) {
-                        sessionGrants.grant(sessionId, toolName, input);
+                    boolean remembered = approved && st.remembered() && canRemember;
+                    if (remembered) {
+                        sessionGrants.grant(sessionId, req.mode(), scope, toolName, input);
                     }
                     // 决议落进 assistant parts，历史重放时还原为静态完成行（不可再操作）
                     recorder.confirmResolved(confirmId, toolName, message, tagNames, input, approved);
-                    return ToolContext.UserConfirmResult.decided(approved, st.remembered());
+                    return ToolContext.UserConfirmResult.decided(approved, remembered);
                 }
             });
             ctx.askUser(new ToolContext.AskUserCallbackEx() {
@@ -726,31 +734,23 @@ public final class ChatService {
     }
 
     private TrustLevel parseTrustLevel(String mode) {
-        if (mode != null) {
-            return switch (mode) {
-                // 写确认模式（默认）：只读自动放行，写/执行必须人工确认（权限引擎规则 #7d）
-                case "write_confirm" -> TrustLevel.STANDARD;
-                // 全确认模式：所有工具调用（含只读）都走人工确认通道（规则 #7a/#7d）
-                case "all_confirm" -> TrustLevel.PARANOID;
-                // 只读模式：信任级别同 STANDARD，写/执行由「readonly 拒绝写」规则 #2.5 直接拒绝（不弹确认）
-                default -> TrustLevel.STANDARD; // readonly
-            };
-        }
-        return switch (props.getTrustLevel().toLowerCase()) {
-            case "trusted" -> TrustLevel.TRUSTED;
-            case "paranoid" -> TrustLevel.PARANOID;
-            default -> TrustLevel.STANDARD;
-        };
+        return "all_confirm".equals(mode) ? TrustLevel.PARANOID : TrustLevel.STANDARD;
     }
 
-    /** 解析执行模式文本（用于审计留痕）：优先前端传入，否则映射应用默认信任级别。 */
-    private String resolveExecutionMode(String mode) {
-        if (mode != null && !mode.isBlank()) return mode;
-        return switch (props.getTrustLevel().toLowerCase()) {
-            case "trusted" -> "trusted";
-            case "paranoid" -> "all_confirm";
-            default -> "write_confirm";
-        };
+    /** 在任务启动前解析并校验模式，避免缺省模式绕过用户保存的安全设置。 */
+    private ChatRequest resolveRequest(ChatRequest req) {
+        String mode = req.mode();
+        if (mode == null || mode.isBlank()) mode = settingsStore.getExecutionMode();
+        if (!java.util.Set.of("readonly", "write_confirm", "all_confirm").contains(mode)) {
+            throw new IllegalArgumentException("无效的执行模式：" + mode);
+        }
+        return new ChatRequest(req.sessionId(), req.message(), req.provider(), req.modelId(),
+                req.hostId(), mode, req.attachments(), req.workspaceId(), req.deploy());
+    }
+
+    private String workspaceScope(String sessionId) {
+        WorkspaceStore.Workspace ws = workspaceStore.boundWorkspace(sessionId);
+        return ws == null ? "" : ws.id() + ":" + ws.canonicalPath();
     }
 
     private static void send(SseEmitter emitter, JsonNode node) throws Exception {
@@ -775,20 +775,12 @@ public final class ChatService {
     }
 
     /**
-     * 部署工具的自动审批决议：null=走正常确认卡；true=自动批准；false=自动拒绝。
-     * AUTO_APPROVE_TOOLS 内命令由后端构造/校验，直接放行；
-     * run_local_async 按本机命令分级器决议。
+     * 安全分级仅负责硬拒绝危险本机命令，不能替代用户的写操作审批。
      */
-    private Boolean automaticDeployDecision(String toolName, JsonNode input) {
-        if (AUTO_APPROVE_TOOLS.contains(toolName)) return Boolean.TRUE;
-        if ("run_local_async".equals(toolName)) {
-            return switch (commandClassifier.classify(input.path("command").asText(""))) {
-                case ALLOW -> Boolean.TRUE;
-                case DENY -> Boolean.FALSE;
-                case CONFIRM -> null;
-            };
-        }
-        return null;
+    private boolean isLocalCommandDenied(String toolName, JsonNode input) {
+        return "run_local_async".equals(toolName)
+                && commandClassifier.classify(input.path("command").asText(""))
+                == LocalCommandClassifier.Level.DENY;
     }
 
     private static String buildUserText(ChatRequest req) {

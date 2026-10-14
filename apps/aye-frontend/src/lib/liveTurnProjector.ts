@@ -61,6 +61,8 @@ export type EndNoteTone = 'stopped' | 'interrupted' | 'error'
 
 export interface LiveTurnView {
   turnNo: number
+  /** 后端启动本轮时确定的权限模式，刷新后仍以此为准。 */
+  mode?: string
   phase: 'running' | 'ended'
   reason?: string
   errorMessage?: string
@@ -119,6 +121,7 @@ interface StepDraft {
  */
 export class LiveTurnFolder {
   turnNo: number
+  mode?: string
   phase: 'running' | 'ended' = 'running'
   reason?: string
   errorMessage?: string
@@ -146,6 +149,7 @@ export class LiveTurnFolder {
   /** 重置为新一轮（下一轮 turn/start 到达时调用）。 */
   private reset(turnNo: number, startedAt: number): void {
     this.turnNo = turnNo
+    this.mode = undefined
     this.startedAt = startedAt
     this.phase = 'running'
     this.reason = undefined
@@ -236,6 +240,7 @@ export class LiveTurnFolder {
     switch (ev.type) {
       case ET.TURN_START:
         // turnNo/startedAt 已在构造或 reset 时吸收
+        this.mode = typeof d.mode === 'string' ? d.mode : undefined
         break
 
       case ET.CONTEXT_INJECTED: {
@@ -525,6 +530,7 @@ export class LiveTurnFolder {
 
     return {
       turnNo: this.turnNo,
+      mode: this.mode,
       phase: this.phase,
       reason: this.reason,
       errorMessage: this.errorMessage,

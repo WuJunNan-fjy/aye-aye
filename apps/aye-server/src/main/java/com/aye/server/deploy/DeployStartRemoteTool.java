@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
  * deploy_start_remote 工具 —— 在远程 current 目录内以后台方式启动应用并记录 pid。
  *
  * <p>EXECUTE 类；AI 提供的启动命令只允许三种固定形态且不含任何 shell 元字符，
- * 后端包裹 nohup/重定向/pid 记录，ChatService 回调自动批准。
+ * 后端包裹 nohup/重定向/pid 记录，启动操作仍须按当前权限模式审批。
  */
 public final class DeployStartRemoteTool implements Tool {
 

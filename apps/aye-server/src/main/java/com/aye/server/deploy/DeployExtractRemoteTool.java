@@ -12,7 +12,7 @@ import com.aye.server.ssh.SshToolSupport;
  * deploy_extract_remote 工具 —— 在远程应用目录内解压已上传的归档。
  *
  * <p>EXECUTE 类；命令由后端按校验后的参数构造（应用目录/归档名严格白名单），
- * ChatService 回调自动批准。tar.gz 用 tar -xzf，.zip 用 unzip；解压目标固定为
+ * 解压须按当前权限模式审批。tar.gz 用 tar -xzf，.zip 用 unzip；解压目标固定为
  * {@code <appDir>/current}。
  */
 public final class DeployExtractRemoteTool implements Tool {

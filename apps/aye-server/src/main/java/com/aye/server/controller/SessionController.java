@@ -1,6 +1,7 @@
 package com.aye.server.controller;
 
 import com.aye.ai.message.UIMessage;
+import com.aye.server.chat.SessionCommandGrants;
 import com.aye.server.session.SessionEventManager;
 import com.aye.server.storage.MessageCodec;
 import com.aye.server.storage.SessionStore;
@@ -23,10 +24,12 @@ public class SessionController {
 
     private final SessionStore store;
     private final SessionEventManager eventManager;
+    private final SessionCommandGrants sessionGrants;
 
-    public SessionController(SessionStore store, SessionEventManager eventManager) {
+    public SessionController(SessionStore store, SessionEventManager eventManager, SessionCommandGrants sessionGrants) {
         this.store = store;
         this.eventManager = eventManager;
+        this.sessionGrants = sessionGrants;
     }
 
     @GetMapping
@@ -55,6 +58,7 @@ public class SessionController {
         // 先删事件（运行中会话拒绝），再删 sessions/messages 投影
         eventManager.deleteSessionEvents(id);
         store.deleteSession(id);
+        sessionGrants.clear(id);
         return Map.of("success", true);
     }
 }

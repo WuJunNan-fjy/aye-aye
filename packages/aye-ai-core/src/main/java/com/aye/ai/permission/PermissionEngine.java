@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
  *
  * <p>设计原则：规则 = match 条件 + decision 决策；数组顺序 = 优先级。
  *
- * <p>规则瀑布：硬拒绝黑名单（与信任级别无关）→ readonly 模式拒绝 → 工具自声明确认 →
+ * <p>规则瀑布：readonly 模式拒绝修改性操作 → 硬拒绝黑名单（与信任级别无关）→ 工具自声明确认 →
  * 危险操作确认（越界路径 / git 破坏）→ 模式×类别决策矩阵 → 引擎末尾 fail-closed Confirm。
  *
  * <p>模式 × 类别决策矩阵（与前端三档承诺 1:1）：
@@ -250,10 +250,10 @@ public final class PermissionEngine {
     // 注册时强校验非空（ToolRegistry.register 对 null 抛异常 = fail-closed）。
     // 规则聚焦于"工具的类别"而非"工具的名字"，彻底消除"漏登记名单→default-allow"暗洞。
 
-    /** 命令执行类工具名（历史遗留名 run_shell/bash + 实际的 run_ssh），黑名单规则共用。 */
+    /** 同步与异步 SSH 共用命令分类和危险命令规则。 */
     private static boolean isShellTool(PermissionContext ctx) {
         return "run_shell".equals(ctx.toolName()) || "bash".equals(ctx.toolName())
-                || "run_ssh".equals(ctx.toolName());
+                || "run_ssh".equals(ctx.toolName()) || "run_ssh_async".equals(ctx.toolName());
     }
 
     /**
@@ -327,6 +327,20 @@ public final class PermissionEngine {
     }
 
     public static final List<PermissionRule> M1_PERMISSION_RULES = List.of(
+            // 只读模式是硬限制：在任何危险操作确认规则之前拒绝修改性操作。
+            // EXECUTE 类 SSH 工具仅在命令可证明只读时继续进入后续规则。
+            new PermissionRule() {
+                public String name() { return "readonly-mode-deny-write-execute"; }
+                public boolean matches(PermissionContext ctx) {
+                    return "readonly".equals(ctx.executionMode()) && ctx.isWriteOrExecute()
+                            && !(isShellTool(ctx)
+                            && ReadOnlyCommandClassifier.isProvablyReadOnly(ctx.commandText()));
+                }
+                public PermissionDecision decide(PermissionContext ctx) {
+                    return new PermissionDecision.Deny(
+                            "只读模式下不允许执行写/破坏性操作：" + ctx.toolName());
+                }
+            },
             // 规则 #2：命令命中 Windows 平台最致命的 4 类黑名单（连接 Windows 主机时同样兜底）
             new PermissionRule() {
                 public String name() { return "bash-windows-deadly-blacklist"; }
@@ -445,7 +459,7 @@ public final class PermissionEngine {
             // 规则 #2.4：run_ssh 命令可被静态证明为纯只读（ls/ps/grep/docker ps/
             // systemctl status 等查看类，白名单 + shell 词法分析，禁止复合结构/注入）→ 免确认。
             // 宁枉勿纵：证明失败（返回 false）不拒绝、不拦截，只回落后续规则照常确认。
-            // 位置必须在 #2.5 之前——只读模式下「只读命令」语义安全应放行，写/执行命令才被 #2.5 拒绝；
+            // 只读模式的修改性命令已被首条规则拒绝；证明只读的命令继续走此放行规则。
             // 硬黑名单 #2.1 仍优先（命中即 Deny，不给本规则开口子）；PARANOID 全确认模式不适用。
             new PermissionRule() {
                 public String name() { return "provably-readonly-command-auto-allow"; }
@@ -486,18 +500,6 @@ public final class PermissionEngine {
                                     + "。删除可能丢失用户/数据库/应用数据或导致服务瘫痪，"
                                     + "删除后无法通过本应用恢复。确认继续？",
                             List.of(DestructiveTag.RECURSIVE_FORCE_DELETE), null);
-                }
-            },
-
-            // 规则 #2.5：readonly 执行模式下，所有写/执行工具一律拒绝（不弹确认）
-            new PermissionRule() {
-                public String name() { return "readonly-mode-deny-write-execute"; }
-                public boolean matches(PermissionContext ctx) {
-                    return "readonly".equals(ctx.executionMode()) && ctx.isWriteOrExecute();
-                }
-                public PermissionDecision decide(PermissionContext ctx) {
-                    return new PermissionDecision.Deny(
-                            "只读模式下不允许执行写/破坏性操作：" + ctx.toolName());
                 }
             },
 

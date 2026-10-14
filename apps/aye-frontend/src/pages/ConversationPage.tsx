@@ -38,6 +38,7 @@ import {
   type ConfirmationCardData, type AskCardData,
 } from '@/components/chat/InteractionCards'
 import { errorMessage, listConfiguredProviders, type ProviderProfile } from '@/api/modelApi'
+import { getSettings } from '@/api/settingsApi'
 import {
   startTurn, cancelTurn,
   type ExecutionMode,
@@ -436,8 +437,33 @@ export default function ConversationPage() {
     return () => { cancelled = true }
   }, [sessionId])
 
-  /** 执行模式（trusted/standard/paranoid 三档，对话内可切换，影响后端工具权限）。 */
-  const [mode, setMode] = useState<ExecutionMode>('write_confirm')
+  /** 先读取用户保存的默认模式；加载失败时采用只读模式。 */
+  const [mode, setMode] = useState<ExecutionMode>('readonly')
+  const [modeLoading, setModeLoading] = useState(true)
+  const activeMode = running && (liveTurn?.mode === 'readonly'
+    || liveTurn?.mode === 'write_confirm' || liveTurn?.mode === 'all_confirm')
+    ? liveTurn.mode : mode
+  useEffect(() => {
+    let cancelled = false
+    const applyMode = (saved: unknown): void => {
+      if (saved === 'readonly' || saved === 'write_confirm' || saved === 'all_confirm') setMode(saved)
+    }
+    // 设置面板修改默认值后用于下一轮；进行中的任务仍显示后端确定的 activeMode。
+    const onDefaultModeChanged = (event: Event): void => applyMode((event as CustomEvent<unknown>).detail)
+    window.addEventListener('aye:default-execution-mode-changed', onDefaultModeChanged)
+    void getSettings().then(settings => {
+      if (cancelled) return
+      applyMode(settings.defaultExecutionMode)
+    }).catch(() => {
+      if (!cancelled) void antdMessage.warning('读取默认权限模式失败，已使用只读模式')
+    }).finally(() => {
+      if (!cancelled) setModeLoading(false)
+    })
+    return () => {
+      cancelled = true
+      window.removeEventListener('aye:default-execution-mode-changed', onDefaultModeChanged)
+    }
+  }, [])
 
   /** 历史会话列表（全局 store，侧栏会话树与本页共用）。 */
   const sessions = useSessionsStore((s) => s.sessions)
@@ -968,7 +994,7 @@ export default function ConversationPage() {
   ): void => {
     const rawText = payload.text.trim()
 
-    if (running || startingTurn) return
+    if (running || startingTurn || modeLoading) return
 
     // 特殊操作：/部署（/deploy）斜杠命令只切换部署模式，不产生对话消息。
     // InputBar 在 onSubmit 后会自行清空输入框。
@@ -1139,11 +1165,13 @@ export default function ConversationPage() {
   const composerTrailing = useMemo(
     () => (
       <div className="conv-trailing" style={{ opacity: modelSelectDimmed ? 0.6 : 1, pointerEvents: modelSelectDimmed ? 'none' : 'auto' }}>
-        <PermissionModeSelect value={mode} onChange={setMode} disabled={modelSelectDimmed} />
+        <PermissionModeSelect value={activeMode} onChange={setMode}
+          disabled={modelSelectDimmed || modeLoading || running || startingTurn}
+          disabledReason={running || startingTurn ? '任务运行期间不能切换权限模式；请先停止任务' : undefined} />
         <ModelSelect groups={groups} current={current} select={selectModel} />
       </div>
     ),
-    [modelSelectDimmed, mode, groups, current, selectModel],
+    [modelSelectDimmed, modeLoading, running, startingTurn, activeMode, groups, current, selectModel],
   )
 
   /**
@@ -1345,7 +1373,7 @@ export default function ConversationPage() {
                       onSubmit={handleSubmit}
                       onStop={stop}
                       running={running}
-                      disabled={startingTurn}
+                      disabled={startingTurn || modeLoading}
                       tools={composerTools}
                       trailing={composerTrailing}
                     />
@@ -1354,6 +1382,7 @@ export default function ConversationPage() {
                   <ComposerApprovalCard
                     key={activeInteraction.id}
                     data={activeInteraction.data}
+                    allowRemember={activeMode === 'write_confirm'}
                     onSettled={() => { /* API 已由卡片调用；接管解除以 interaction/resolved 事件为准 */ }}
                   />
                 ) : (

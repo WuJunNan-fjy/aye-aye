@@ -47,5 +47,11 @@ export async function getSettings(): Promise<GeneralSettings> {
 /** 部分更新（只写 patch 里的 key），返回更新后的完整设置。 */
 export async function updateSettings(patch: Partial<GeneralSettings>): Promise<GeneralSettings> {
   const res = await client.put('/settings', patch)
-  return res.data.settings as GeneralSettings
+  const settings = res.data.settings as GeneralSettings
+  if (patch.defaultExecutionMode !== undefined) {
+    window.dispatchEvent(new CustomEvent('aye:default-execution-mode-changed', {
+      detail: settings.defaultExecutionMode,
+    }))
+  }
+  return settings
 }

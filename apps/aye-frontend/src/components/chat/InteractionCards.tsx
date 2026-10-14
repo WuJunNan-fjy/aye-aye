@@ -312,22 +312,24 @@ export const AskCard = memo(function AskCard(
  * ======================================================================== */
 
 /** 审批接管卡：允许一次 → 放行工具；拒绝 → 按错误返回给 LLM。 */
-export function ComposerApprovalCard({ data, onSettled }: {
+export function ComposerApprovalCard({ data, onSettled, allowRemember = false }: {
   data: ConfirmationCardData
   onSettled: (approved: boolean) => void
+  allowRemember?: boolean
 }) {
   const { confirmId, toolName, message, tags, input } = data
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   // 会话级授权：勾选后，本会话内完全相同的命令/参数后续免确认（精确匹配，参数不同仍会询问）。
   const [remember, setRemember] = useState(false)
+  const canRemember = allowRemember && (tags?.length ?? 0) === 0
 
   const act = async (ok: boolean): Promise<void> => {
     if (busy) return
     setBusy(true)
     setError('')
     try {
-      await resolveConfirmation(confirmId, ok, ok && remember)
+      await resolveConfirmation(confirmId, ok, ok && canRemember && remember)
       // 成功即交还 composer（父组件把决议写回时间线）；失败留在原卡可重试。
       onSettled(ok)
     } catch (e) {
@@ -366,15 +368,15 @@ export function ComposerApprovalCard({ data, onSettled }: {
             )}
         </div>
 
-        <label className="ic-ap-remember">
+        {canRemember && <label className="ic-ap-remember">
           <input
             type="checkbox"
             checked={remember}
             disabled={busy}
             onChange={e => setRemember(e.target.checked)}
           />
-          <span>本会话相同命令不再询问（仅限完全相同的参数；拒绝时不生效）</span>
-        </label>
+          <span>本会话、当前模式和项目内相同操作不再询问（仅限完整参数相同）</span>
+        </label>}
 
         <div className="ic-ap-actions">
           <span className="ic-ap-feedback" role="status">

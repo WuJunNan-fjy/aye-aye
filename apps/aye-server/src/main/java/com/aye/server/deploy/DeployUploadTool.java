@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
  * deploy_upload 工具 —— 把工作区内的产物以流式 SFTP 直传到目标主机。
  *
  * <p>文件不出后端、只开一次 SFTP put（内存与包大小无关）。EXECUTE 类；
- * ChatService 回调对本工具自动批准（参数在此严格校验）：
+ * 上传须按当前权限模式审批，参数在此严格校验：
  * <ul>
  *   <li>localPath 必须存在且在会话授权根内；</li>
  *   <li>filename 只含安全字符；remoteDir 必须位于 aye-apps 目录约定内。</li>

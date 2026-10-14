@@ -26,9 +26,10 @@ interface Props {
   value: ExecutionMode
   onChange: (mode: ExecutionMode) => void
   disabled?: boolean
+  disabledReason?: string
 }
 
-export default function PermissionModeSelect({ value, onChange, disabled }: Props) {
+export default function PermissionModeSelect({ value, onChange, disabled, disabledReason }: Props) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const current = PERMISSION_MODES.find((m) => m.value === value) ?? PERMISSION_MODES[0]
@@ -75,7 +76,7 @@ export default function PermissionModeSelect({ value, onChange, disabled }: Prop
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
-        title={`执行模式：${current.desc}`}
+        title={disabled && disabledReason ? disabledReason : `执行模式：${current.desc}`}
         onClick={() => setOpen((v) => !v)}
       >
         <span className="pm-trigger-icon" aria-hidden>{current.glyph}</span>
