@@ -14,7 +14,7 @@ import { useHostStore } from '@/store/useHostStore'
 import { connectHost } from '@/lib/sshConnect'
 
 // 无 props，状态全部来自 host store：memo 后父页面流式重渲染完全不会波及本组件。
-export const HostConnectBar = memo(function HostConnectBar() {
+export const HostConnectBar = memo(function HostConnectBar({ showPrivateKey = false }: { showPrivateKey?: boolean }) {
   const navigate = useNavigate()
   const hosts = useHostStore((s) => s.hosts)
   const currentHostId = useHostStore((s) => s.currentHostId)
@@ -49,7 +49,7 @@ export const HostConnectBar = memo(function HostConnectBar() {
   // 已连接 / 连接中瞬时态以外才提示；私钥路径主机可自动建连，不打扰。
   if (status === 'connected') return null
   const connecting = status === 'connecting' || busy
-  if (host.authType === 'PRIVATE_KEY' && host.privateKeyPath) return null
+  if (!showPrivateKey && host.authType === 'PRIVATE_KEY' && host.privateKeyPath) return null
 
   const needPassword = host.authType === 'PASSWORD'
 

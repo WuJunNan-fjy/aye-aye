@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { message as antdMessage, Tooltip } from 'antd'
 import {
   SquareTerminal,
@@ -13,14 +13,6 @@ import {
   FolderUp,
   FolderPlus,
   FileArchive,
-  ShieldCheck,
-  ScrollText,
-  HardDrive,
-  Rocket,
-  FolderOpen,
-  ChevronDown,
-  X,
-  type LucideIcon,
 } from 'lucide-react'
 import SshTerminalPanel, { type SshTerminalPanelRef } from '@/components/terminal/SshTerminalPanel'
 import ServerFileTree, { type ServerFileTreeRef } from '@/components/files/ServerFileTree'
@@ -59,17 +51,14 @@ import {
 } from '@/store/useSessionRuntime'
 import type { LiveTurnView } from '@/lib/liveTurnProjector'
 import { getStoredModelSelection, setStoredModelSelection } from '@/lib/modelSelection'
-import { getLastSessionId, setLastSessionId } from '@/lib/prefs'
+import { setLastSessionId } from '@/lib/prefs'
 import {
   hostKeyOf, isMutationTool, parseSshResult, resultOutputText, clampForTerminal,
 } from '@/lib/remoteTools'
-import WorkspacePicker from '@/components/deploy/WorkspacePicker'
-import { DeployDock, standingDeployFromMessages, deployIsFinished } from '@/components/deploy/DeployDock'
-import { DeployRocketIcon } from '@/components/deploy/DeployRocketIcon'
+import { DeployDock, standingDeployFromMessages } from '@/components/deploy/DeployDock'
 import { TodoDock, standingTodoFromMessages } from '@/components/chat/TodoDock'
 import {
   getBoundWorkspace,
-  unbindWorkspace,
   type Workspace,
 } from '@/api/deployApi'
 
@@ -319,63 +308,9 @@ function endNoteMessage(view: LiveTurnView): ChatMessage | null {
   }
 }
 
-/** 空态场景入口（点击即作为首轮指令发送）。 */
-const HERO_SCENES: Array<{ label: string; icon: LucideIcon }> = [
-  { label: '巡检这台主机', icon: ShieldCheck },
-  { label: '查最近报错日志', icon: ScrollText },
-  { label: '清理磁盘空间', icon: HardDrive },
-  { label: '部署应用', icon: Rocket },
-]
-
-/**
- * 空态品牌标：终端提示符「>_」变体——青蓝渐变圆角方块，
- * 与侧栏 22px T 标同色同源，但更立体（48px + 品牌色柔光投影）。
- */
-function HeroBrand() {
-  return (
-    <span className="conv-heroBrand" aria-hidden="true">
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-        <defs>
-          <linearGradient id="tmHeroBrand" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-            <stop offset="0" style={{ stopColor: 'var(--tm-brand-primary)' }} />
-            <stop offset="1" style={{ stopColor: 'var(--tm-brand-strong)' }} />
-          </linearGradient>
-        </defs>
-        <rect width="48" height="48" rx="13" fill="url(#tmHeroBrand)" />
-        <circle
-          cx="24"
-          cy="24.4"
-          r="7.2"
-          fill="none"
-          stroke="var(--tm-brand-on)"
-          strokeWidth="3.2"
-        />
-        <path
-          d="M31.2 15.6 V33.2"
-          stroke="var(--tm-brand-on)"
-          strokeWidth="3.2"
-          strokeLinecap="round"
-        />
-        <circle
-          className="aye-brand-pupil"
-          cx="24"
-          cy="24.4"
-          r="2.4"
-          fill="var(--tm-brand-on)"
-        />
-      </svg>
-    </span>
-  )
-}
-
 export default function ConversationPage() {
   const navigate = useNavigate()
   const { sessionId } = useParams<{ sessionId?: string }>()
-  /**
-   * ?new=1：显式「新会话」标记。仅靠无 sessionId 无法区分「点新会话」与「点对话导航」，
-   * 因此新会话按钮带该参数；进入空白态后立即用 replace 抹掉（不污染后退栈）。
-   */
-  const [searchParams, setSearchParams] = useSearchParams()
 
   const [draft, setDraft] = useState('')
   /** 历史基线消息（GET messages，仅挂载/sessionId 变化时拉取；turn 结束后不重拉）。 */
@@ -400,42 +335,23 @@ export default function ConversationPage() {
 
   /** 当前选中的项目（工作区）：一键部署流程的前提。 */
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
-  const [pickerOpen, setPickerOpen] = useState(false)
 
-  /**
-   * 部署模式（显式开启：火箭钮 / 输入 /部署 / 一键部署建议条）。
-   * 开启后每轮请求带 deploy=true，后端才注入 7 阶段流水线提示词；
-   * verify 完成后自动退出，也可用模式条上的 × 手动退出。切会话复位。
-   */
-  const [deployMode, setDeployMode] = useState(false)
-  /** B 方案：显式选中项目后出现一次的「一键部署」建议条；用掉/关掉后不再出现。 */
-  const [deployHint, setDeployHint] = useState(false)
-
-  // 切会话复位部署态（绑定项目由下方 effect 从后端回填，回填不弹建议条）。
+  const [workspaceLoading, setWorkspaceLoading] = useState(true)
+  const [workspaceError, setWorkspaceError] = useState('')
+  const [workspaceRetry, setWorkspaceRetry] = useState(0)
   useEffect(() => {
-    setDeployMode(false)
-    setDeployHint(false)
-  }, [sessionId])
-
-  // 工作区绑定：切换会话先清空旧选择（避免新会话瞬间显示上个会话的项目），
-  // 再从后端回填该会话持久化的绑定（刷新/重启后仍在）。
-  useEffect(() => {
-    if (!sessionId) {
-      setWorkspace(null)
-      return
-    }
     let cancelled = false
     setWorkspace(null)
-    void (async () => {
-      try {
-        const ws = await getBoundWorkspace(sessionId)
-        if (!cancelled && ws) setWorkspace(ws)
-      } catch {
-        /* 绑定查询失败不影响对话 */
-      }
-    })()
+    setWorkspaceLoading(true)
+    setWorkspaceError('')
+    if (!sessionId) { setWorkspaceLoading(false); return }
+    void getBoundWorkspace(sessionId).then(ws => {
+      if (!cancelled) setWorkspace(ws)
+    }).catch(() => {
+      if (!cancelled) setWorkspaceError('项目恢复失败，请重试后继续任务')
+    }).finally(() => { if (!cancelled) setWorkspaceLoading(false) })
     return () => { cancelled = true }
-  }, [sessionId])
+  }, [sessionId, workspaceRetry])
 
   /** 先读取用户保存的默认模式；加载失败时采用只读模式。 */
   const [mode, setMode] = useState<ExecutionMode>('readonly')
@@ -469,16 +385,27 @@ export default function ConversationPage() {
   const sessions = useSessionsStore((s) => s.sessions)
   const sessionsLoading = useSessionsStore((s) => s.loading)
   const loadSessions = useSessionsStore((s) => s.load)
+  const taskInfo = sessions.find(s => s.id === sessionId)
+  const isDeployment = taskInfo?.deploy === true
+  const restoringTask = sessionsLoading || !taskInfo || workspaceLoading
 
   /** 当前选中的服务器（用于让 AI 通过 SFTP 工具读写远程文件）。 */
   const currentHost = useHostStore(selectCurrentHost)
   const currentState = useHostStore(selectCurrentState)
   const currentStatus = currentState?.status || 'disconnected'
+  const hosts = useHostStore(s => s.hosts)
+  const selectHost = useHostStore(s => s.selectHost)
+  const taskHost = isDeployment ? hosts.find(h => h.id === taskInfo?.hostId) : currentHost
+  const missingDeploymentTarget = isDeployment && (!workspace || !taskHost)
+  // 部署任务绑定自己的目标；全局主机选择不能改变已有任务的目的地。
+  useEffect(() => {
+    if (taskInfo?.hostId != null && hosts.some(h => h.id === taskInfo.hostId)
+        && currentHost?.id !== taskInfo.hostId) selectHost(taskInfo.hostId)
+  }, [taskInfo?.hostId, hosts, currentHost?.id, selectHost])
   const disconnectHost = useHostStore((s) => s.disconnect)
   const reconnectHost = useHostStore((s) => s.reconnect)
 
-  /** 右侧工作台面板（对齐 v1）：终端/文件 Tab + 可见性 + 宽度（默认 34%，可拖拽）。
-   *  未连接时默认收起，连接成功后自动展开（见下方状态边沿 effect）。 */
+  /** 高级操作默认收起；展开后可切换终端/文件并调整宽度。 */
   const [wbTab, setWbTab] = useState<'terminal' | 'files'>('terminal')
   const [rightVisible, setRightVisible] = useState(false)
   const [rightWidth, setRightWidth] = useState(0)
@@ -584,7 +511,7 @@ export default function ConversationPage() {
   }, [rightVisible])
 
   // 响应式：初始化右侧宽度，窗口变窄/移动端自动收起右侧面板。
-  // 桌面端不再强制展开——可见性交给连接状态（未连接收起 / 连上自动展开）与用户手动开关。
+  // 桌面端由用户手动展开。
   useEffect(() => {
     const updateLayout = () => {
       const width = window.innerWidth
@@ -602,19 +529,7 @@ export default function ConversationPage() {
     return () => window.removeEventListener('resize', updateLayout)
   }, [rightWidth])
 
-  /**
-   * 连接成功边沿：disconnected/error/connecting → connected 时桌面端自动展开工作台。
-   * 只在状态跳变沿触发一次；用户随后手动收起不会被弹回（同一 connected 状态内无效果）。
-   * ref 初值按未连接处理：挂载时主机已连接（切页回来/自动重连完成）也会展开。
-   */
-  const prevStatusRef = useRef<string>('disconnected')
-  useEffect(() => {
-    const prev = prevStatusRef.current
-    prevStatusRef.current = currentStatus
-    if (prev !== 'connected' && currentStatus === 'connected' && !isMobile) {
-      setRightVisible(true)
-    }
-  }, [currentStatus, isMobile])
+  // 连接成功后保持工作台收起，用户通过高级操作手动展开。
 
   const handleResize = useCallback((delta: number) => {
     setRightWidth((prev) => {
@@ -674,15 +589,8 @@ export default function ConversationPage() {
     const dist = el.scrollHeight - el.scrollTop - el.clientHeight
     stickToBottomRef.current = dist < 48
   }, [])
-  /** 「选择项目」入口 chip，WorkspacePicker 弹层锚定它向上展开。 */
-  const wsTriggerRef = useRef<HTMLButtonElement | null>(null)
   /** 标记本次 URL 变更是由 startTurn 返回后回填 sessionId 触发的，跳过一次基线加载（避免空 hero settling 闪烁）。 */
   const selfNavigatedRef = useRef(false)
-  /**
-   * 用户显式点了「新会话」：停留在空白态。参数 ?new=1 抹除后本 effect 会再跑一次，
-   * 用该标记拦住「恢复上次会话」分支；进入具体会话（sessionId 出现）后复位。
-   */
-  const freshSessionRef = useRef(false)
 
   // 挂载时拉取已配置厂商（Settings → Models 页写入的真数据）。
   useEffect(() => {
@@ -766,17 +674,6 @@ export default function ConversationPage() {
    * 与部署模式开关无关——AI 即便靠自然语言走进部署，阶段卡也照常出现。
    */
   const standingDeploy = useMemo(() => standingDeployFromMessages(displayMessages), [displayMessages])
-
-  /** 部署进行中：任一阶段处于 running——火箭钮在此期间持续推力震动循环。 */
-  const deployRunning = useMemo(
-    () => !!standingDeploy?.some(s => s.status === 'running'),
-    [standingDeploy],
-  )
-
-  // verify 完成 → 自动退出部署模式（失败不退出，留在模式内修复重试）。
-  useEffect(() => {
-    if (deployMode && deployIsFinished(standingDeploy)) setDeployMode(false)
-  }, [deployMode, standingDeploy])
 
   // 新内容到达：仅在贴底时跟随滚动（用户上翻阅读时保持原位；合流后最多每帧一次）。
   useEffect(() => {
@@ -941,37 +838,6 @@ export default function ConversationPage() {
     return () => { cancelled = true }
   }, [sessionId])
 
-  /**
-   * 进入 /chat（无 sessionId）时的默认行为（对齐主流聊天产品）：
-   *  - 带 ?new=1（点了「新会话」）→ 停留空白态，replace 抹掉参数；
-   *  - 否则恢复上次打开的会话（localStorage 记录，且必须仍存在于历史列表）；
-   *  - 没有上次会话 / 历史已删除 → 停留空白态。
-   * 这样刷新 / 点侧栏「对话」标签 / 重开浏览器都能回到原会话继续聊。
-   */
-  useEffect(() => {
-    if (sessionId) {
-      // 已进入具体会话（含新会话发出首条消息后回填 ID）：解除「显式新开」锁定。
-      freshSessionRef.current = false
-      return
-    }
-    if (sessionsLoading) return
-    if (searchParams.get('new') === '1') {
-      setMessages([])
-      freshSessionRef.current = true
-      const next = new URLSearchParams(searchParams)
-      next.delete('new')
-      setSearchParams(next, { replace: true })
-      return
-    }
-    // 本次空白态是用户显式新开的（参数刚被抹除，effect 重跑会走到这里）：保持空白。
-    if (freshSessionRef.current) return
-    const lastId = getLastSessionId()
-    if (lastId && sessions.some((s) => s.id === lastId)) {
-      navigate(`/chat/${lastId}`, { replace: true })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, sessionsLoading, sessions, searchParams])
-
   /** ModelSelect 的选择校验：选择「未配置 API Key」的厂商时拒绝选中（toast 展示）。 */
   const selectModel = useCallback(async (selection: ModelSelection): Promise<boolean> => {
     const vendor = providers.find(v => v.id === selection.provider)
@@ -990,29 +856,13 @@ export default function ConversationPage() {
    */
   const send = (
     payload: ComposerSubmitPayload,
-    opts?: { deploy?: boolean },
   ): void => {
     const rawText = payload.text.trim()
 
-    if (running || startingTurn || modeLoading) return
-
-    // 特殊操作：/部署（/deploy）斜杠命令只切换部署模式，不产生对话消息。
-    // InputBar 在 onSubmit 后会自行清空输入框。
-    if (rawText === '/部署' || rawText === '/deploy') {
-      if (deployMode) {
-        setDeployMode(false)
-      } else if (!workspace) {
-        antdMessage.warning('请先选择项目，再进入部署模式')
-        setPickerOpen(true)
-      } else {
-        setDeployHint(false)
-        setDeployMode(true)
-      }
-      return
-    }
+    if (running || startingTurn || modeLoading || restoringTask || workspaceError || missingDeploymentTarget) return
 
     const text = rawText
-    const wantDeploy = opts?.deploy === true || deployMode
+    const wantDeploy = isDeployment
     const tagLines = payload.fileTags.map((t) => `@${t.path}`)
     const finalText = [text, ...tagLines].filter(Boolean).join('\n\n')
     const hasAnything = finalText.length > 0 || payload.attachments.length > 0
@@ -1037,7 +887,7 @@ export default function ConversationPage() {
           sessionId: sessionId ?? undefined,
           message: finalText,
           modelRef,
-          hostId: currentHost?.id,
+          hostId: taskHost?.id,
           mode,
           attachments: payload.attachments,
           workspaceId: workspace?.id,
@@ -1076,35 +926,6 @@ export default function ConversationPage() {
     sendRef.current({ text: '已连接，请继续刚才的任务', attachments: [], fileTags: [] })
   }, [])
 
-  /**
-   * 进入部署模式：必须先绑定项目，否则引导打开项目选择器。
-   * 火箭钮、/部署 斜杠、一键部署建议条共用此入口。
-   */
-  const enterDeployMode = useCallback((): boolean => {
-    if (!workspace) {
-      antdMessage.warning('请先选择项目，再进入部署模式')
-      setPickerOpen(true)
-      return false
-    }
-    setDeployHint(false)
-    setDeployMode(true)
-    return true
-  }, [workspace])
-
-  const toggleDeployMode = useCallback((): void => {
-    if (deployMode) setDeployMode(false)
-    else enterDeployMode()
-  }, [deployMode, enterDeployMode])
-
-  /** B 方案建议条：进入部署模式并立即发出确定性部署指令（同事件内显式带 deploy）。 */
-  const startQuickDeploy = useCallback((): void => {
-    if (!enterDeployMode()) return
-    setDeployHint(false)
-    sendRef.current(
-      { text: '部署当前项目', attachments: [], fileTags: [] },
-      { deploy: true },
-    )
-  }, [enterDeployMode])
   /**
    * 停止：请求后端取消当前 turn（幂等，无运行 turn 返回 ok=false）。
    * 不在本地置态——终态以 turn/end(reason=aborted) 事件投影为准，保证多标签/断线恢复一致。
@@ -1164,51 +985,15 @@ export default function ConversationPage() {
    */
   const composerTrailing = useMemo(
     () => (
+      <details className="deployment-options"><summary>高级选项</summary>
       <div className="conv-trailing" style={{ opacity: modelSelectDimmed ? 0.6 : 1, pointerEvents: modelSelectDimmed ? 'none' : 'auto' }}>
         <PermissionModeSelect value={activeMode} onChange={setMode}
           disabled={modelSelectDimmed || modeLoading || running || startingTurn}
           disabledReason={running || startingTurn ? '任务运行期间不能切换权限模式；请先停止任务' : undefined} />
         <ModelSelect groups={groups} current={current} select={selectModel} />
-      </div>
+      </div></details>
     ),
     [modelSelectDimmed, modeLoading, running, startingTurn, activeMode, groups, current, selectModel],
-  )
-
-  /**
-   * 左下工具槽：部署模式火箭钮 + 绑定项目后的迷你入口（大胶囊此时坍缩为这个 28px 图标，
-   * 点击仍可打开选择器切换/解绑）。useMemo 钉引用，避免击穿 InputBar memo。
-   */
-  const composerTools = useMemo(
-    () => (
-      <>
-        <button
-          type="button"
-          className={`inp-deploy${deployMode ? ' is-active' : ''}${deployRunning ? ' is-deploying' : ''}`}
-          aria-label="部署模式"
-          aria-pressed={deployMode}
-          title={deployRunning ? '部署进行中…' : '部署模式（也可直接输入 /部署）'}
-          onMouseDown={(e) => { e.preventDefault() }}
-          onClick={toggleDeployMode}
-        >
-          <DeployRocketIcon size={14} />
-        </button>
-        {workspace && (
-          <button
-            ref={wsTriggerRef}
-            type="button"
-            className={`wp-mini${pickerOpen ? ' is-open' : ''}`}
-            aria-haspopup="menu"
-            aria-expanded={pickerOpen}
-            title={`项目：${workspace.canonical_path}（点击切换或解绑）`}
-            onMouseDown={(e) => { e.preventDefault() }}
-            onClick={() => setPickerOpen(true)}
-          >
-            <FolderOpen size={15} strokeWidth={1.8} />
-          </button>
-        )}
-      </>
-    ),
-    [deployMode, deployRunning, workspace, pickerOpen, toggleDeployMode],
   )
 
   return (
@@ -1217,13 +1002,19 @@ export default function ConversationPage() {
         {/* 顶部条：终端/文件面板开关。
             主机/会话身份与会话操作（删除等）全部收敛到左侧会话树。 */}
         <div className="conv-topbar">
+          <div className="deployment-title">
+            <button type="button" className="project-text-button" onClick={() => navigate(workspace ? '/projects?project=' + workspace.id : '/projects')}>项目</button>
+            <span title={workspace?.canonical_path}>{workspace?.title ?? '历史任务'} · {taskHost?.name ?? '目标不可用'}</span>
+          </div>
+          <button type="button" className="project-text-button" onClick={() => navigate('/observability/traces', { state: { from: `/chat/${sessionId}` } })}>诊断记录</button>
           {!rightVisible && !isMobile && (
             <button
               type="button"
-              className="dsh-icon-btn"
-              title="打开终端/文件面板"
+              className="project-button"
+              title="高级操作：终端与文件" aria-label="高级操作：终端与文件"
               onClick={toggleRightPanel}
             >
+              <span style={{ fontSize: 12 }}>高级操作</span>
               <FxNavIcon cls="pn-ico pn-open-r">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <rect width="18" height="18" x="3" y="3" rx="2" />
@@ -1261,99 +1052,17 @@ export default function ConversationPage() {
               )}
 
               <div className="conv-composer-seat">
-                {/* 空态 hero：品牌标 + 价值主张 + 场景入口，与输入卡同栈居中 */}
-                {empty && (
-                  <>
-                    <div className="conv-heroGlow" aria-hidden="true" />
-                    <div className="conv-hero-head">
-                      <HeroBrand />
-                      <h2 className="conv-heroTitle">Aye</h2>
-                      <p className="conv-heroSub">连接主机，用一句话完成巡检、排障与部署</p>
-                      <div className="conv-heroChips">
-                        {HERO_SCENES.map(({ label, icon: Icon }) => (
-                          <button
-                            key={label}
-                            type="button"
-                            className="conv-heroChip"
-                            onClick={() => send({ text: label, attachments: [], fileTags: [] })}
-                          >
-                            <Icon className="conv-heroChipIcon" style={{ fontSize: 13 }} aria-hidden />
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
+                {empty && <div className="conv-hero-head">
+                  <h2 className="conv-heroTitle">{isDeployment ? '部署执行记录' : '历史任务'}</h2>
+                  <p className="conv-heroSub">{restoringTask ? '正在恢复任务…' : '在这里查看执行过程，或补充要求继续处理。'}</p>
+                </div>}
+                {workspaceError && <div className="deployment-setup-note" role="alert">{workspaceError}<button type="button" className="project-text-button" onClick={() => setWorkspaceRetry(n => n + 1)}>重试</button></div>}
+                {!workspaceLoading && missingDeploymentTarget && <p className="deployment-setup-note" role="alert">原项目或服务器已移除，请回到项目首页重新选择并新建部署。</p>}
 
                 {/* composer 接管（dsh conversation.composer 链）：等待审批/提问期间
                     浮卡整体替换 HostConnectBar + InputBar，决议后输入框回来。 */}
                 {activeInteraction === null ? (
                   <>
-                    {/* 项目入口三态：
-                        ① 部署模式中 → 模式条（火箭 · 项目名 · 退出）；
-                        ② 已绑定项目 → 大胶囊消失，坍缩为输入框左下的迷你文件夹图标；
-                           刚选中项目时额外给一条一次性「一键部署」建议（B 方案）；
-                        ③ 未绑定项目 → 保留浅灰大胶囊引导选择。
-                        行座与 HostConnectBar / 输入卡共用 736 居中列。 */}
-                    {deployMode && workspace ? (
-                      <div className="dmb-row">
-                        <div className="dmb-bar">
-                          <span className="dmb-icon" aria-hidden><Rocket size={13} /></span>
-                          <span className="dmb-name">部署模式</span>
-                          <span className="dmb-project" title={workspace.canonical_path}>· {workspace.title}</span>
-                          <button
-                            type="button"
-                            className="dmb-exit"
-                            aria-label="退出部署模式"
-                            title="退出部署模式"
-                            onClick={() => setDeployMode(false)}
-                          >
-                            <X size={12} strokeWidth={2.2} />
-                          </button>
-                        </div>
-                      </div>
-                    ) : !deployMode && workspace && deployHint ? (
-                      <div className="dph-row">
-                        <div className="dph-bar">
-                          <button
-                            type="button"
-                            className="dph-go"
-                            onClick={startQuickDeploy}
-                            title={`按标准 7 阶段流水线部署 ${workspace.title}`}
-                          >
-                            <Rocket size={12} />
-                            一键部署 {workspace.title} →
-                          </button>
-                          <button
-                            type="button"
-                            className="dph-close"
-                            aria-label="关闭建议"
-                            title="关闭（之后可用火箭钮或输入 /部署 进入部署模式）"
-                            onClick={() => setDeployHint(false)}
-                          >
-                            <X size={12} strokeWidth={2.2} />
-                          </button>
-                        </div>
-                      </div>
-                    ) : !workspace && (
-                      <div className="wp-triggerRow">
-                        <button
-                          ref={wsTriggerRef}
-                          type="button"
-                          className={`wp-trigger${pickerOpen ? ' is-open' : ''}`}
-                          onClick={() => setPickerOpen(true)}
-                          aria-haspopup="menu"
-                          aria-expanded={pickerOpen}
-                          title="选择项目（一键部署）"
-                        >
-                          <Folder size={16} strokeWidth={1.8} className="wp-triggerFolder" />
-                          <span className="wp-triggerLabel">选择项目</span>
-                          <ChevronDown size={12} strokeWidth={1.8} className={`wp-triggerChevron${pickerOpen ? ' is-open' : ''}`} />
-                        </button>
-                      </div>
-                    )}
-
                     {/* 部署阶段卡：回放 deploy_stage 事件的固定 7 阶段，全会话唯一实例。 */}
                     <DeployDock key={`deploy-${sessionId ?? 'new'}`} stages={standingDeploy} />
 
@@ -1367,14 +1076,13 @@ export default function ConversationPage() {
                     {/* 底部：输入条，左下为部署/项目工具槽，右下执行模式切换器 + 模型座 */}
                     <InputBar
                       variant={empty ? 'hero' : 'composer'}
-                      placeholder={empty ? '描述你想执行的运维任务…（输入 /部署 可进入一键部署模式）' : undefined}
+                      placeholder={isDeployment ? '补充部署要求，或描述需要处理的问题…' : '继续这个历史任务…'}
                       value={draft}
                       onChange={setDraft}
                       onSubmit={handleSubmit}
                       onStop={stop}
                       running={running}
-                      disabled={startingTurn || modeLoading}
-                      tools={composerTools}
+                      disabled={startingTurn || modeLoading || restoringTask || !!workspaceError || missingDeploymentTarget}
                       trailing={composerTrailing}
                     />
                   </>
@@ -1480,7 +1188,7 @@ export default function ConversationPage() {
                       </button>
                     </Tooltip>
                     <Tooltip title="操作日志">
-                      <button type="button" className="wb-icon-btn" onClick={() => navigate('/observability/logs')}>
+                      <button type="button" className="wb-icon-btn" onClick={() => navigate('/observability/logs', { state: { from: `/chat/${sessionId}` } })}>
                         <FileText />
                       </button>
                     </Tooltip>
@@ -1511,19 +1219,6 @@ export default function ConversationPage() {
         </div>
       </div>
 
-      <WorkspacePicker
-        open={pickerOpen}
-        anchorRef={wsTriggerRef}
-        sessionId={sessionId}
-        selectedId={workspace?.id}
-        onClose={() => setPickerOpen(false)}
-        onSelect={(ws) => {
-          setWorkspace(ws)
-          // 仅用户在选择器内显式选中（或新建/拉取）时给一次性建议；
-          // 会话绑定回填走 getBoundWorkspace effect，不经过这里，不会弹建议。
-          setDeployHint(ws !== null)
-        }}
-      />
     </div>
   )
 }

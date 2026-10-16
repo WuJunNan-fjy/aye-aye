@@ -3,6 +3,7 @@ package com.aye.server.controller;
 import com.aye.server.config.AppProperties;
 import com.aye.server.deploy.LocalExecService;
 import com.aye.server.deploy.WorkspaceStore;
+import com.aye.server.storage.SessionStore;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,13 +33,15 @@ public class WorkspaceController {
     private final LocalExecService exec;
     private final AppProperties props;
     private final com.aye.server.config.LocalPathAuthority pathAuthority;
+    private final SessionStore sessions;
 
     public WorkspaceController(WorkspaceStore store, LocalExecService exec, AppProperties props,
-                               com.aye.server.config.LocalPathAuthority pathAuthority) {
+                               com.aye.server.config.LocalPathAuthority pathAuthority, SessionStore sessions) {
         this.store = store;
         this.exec = exec;
         this.props = props;
         this.pathAuthority = pathAuthority;
+        this.sessions = sessions;
     }
 
     @GetMapping
@@ -87,6 +90,12 @@ public class WorkspaceController {
         if (sessionId == null || sessionId.isBlank() || !(wsId instanceof Number)) {
             throw new IllegalArgumentException("sessionId 与 workspaceId 不能为空");
         }
+        if (sessions.deploymentContext(sessionId).deploy()) {
+            var bound = store.boundWorkspace(sessionId);
+            if (bound == null || bound.id() != ((Number) wsId).longValue()) {
+                throw new IllegalArgumentException("已有部署的项目不能更换，请从项目首页新建部署");
+            }
+        }
         store.bindSession(sessionId, ((Number) wsId).longValue());
         return Map.of("ok", true);
     }
@@ -97,6 +106,9 @@ public class WorkspaceController {
         String sessionId = body.get("sessionId") == null ? null : String.valueOf(body.get("sessionId"));
         if (sessionId == null || sessionId.isBlank()) {
             throw new IllegalArgumentException("sessionId 不能为空");
+        }
+        if (sessions.deploymentContext(sessionId).deploy()) {
+            throw new IllegalArgumentException("已有部署的项目不能解绑，请从项目首页新建部署");
         }
         store.unbindSession(sessionId);
         return Map.of("ok", true);

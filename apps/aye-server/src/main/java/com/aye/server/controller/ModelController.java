@@ -172,7 +172,9 @@ public class ModelController {
     @GetMapping("/default")
     public Map<String, Object> defaultModel() {
         DefaultRef d = store.getDefaultRef();
-        return Map.of("default", d == null ? null : Map.of("providerId", d.providerId(), "modelId", d.modelId()));
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("default", d == null ? null : Map.of("providerId", d.providerId(), "modelId", d.modelId()));
+        return result;
     }
 
     @PutMapping("/default")

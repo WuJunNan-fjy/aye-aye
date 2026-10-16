@@ -125,7 +125,8 @@ public final class ModelProviderStore {
         if (!rows.isEmpty()) {
             String pid = str(rows.get(0).get("provider_id"));
             String mid = str(rows.get(0).get("model_id"));
-            if (get(pid) != null && hasModel(pid, mid)) return new DefaultRef(pid, mid);
+            Provider provider = get(pid);
+            if (provider != null && provider.enabled() && hasModel(pid, mid)) return new DefaultRef(pid, mid);
         }
         for (Provider p : listProviders()) {
             if (p.enabled() && !p.models().isEmpty()) {

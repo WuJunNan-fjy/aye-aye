@@ -13,6 +13,7 @@ import com.aye.server.local.LocalAttachmentRegistry;
 import com.aye.server.session.SessionEventManager;
 import com.aye.server.session.SessionEventStore;
 import com.aye.server.storage.*;
+import com.aye.server.ssh.SshSessionManager;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.*;
@@ -25,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Files;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -42,8 +44,10 @@ class ChatPermissionFlowTest {
     private AppProperties props;
     private ToolRegistry tools;
     private WorkspaceStore workspaces;
+    private SshSessionManager ssh;
     private final AtomicInteger requests = new AtomicInteger();
     private final AtomicInteger executions = new AtomicInteger();
+    private final AtomicReference<String> modelRequest = new AtomicReference<>();
     private String toolName;
     private String command = "npm run build";
     private static final String SESSION = "permission-test";
@@ -61,7 +65,7 @@ class ChatPermissionFlowTest {
         props.setDefaultApiKey("fake-test-key");
         llm = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         llm.createContext("/v1/chat/completions", exchange -> {
-            exchange.getRequestBody().readAllBytes();
+            modelRequest.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
             var delta = Json.object();
             boolean toolCall = requests.getAndIncrement() % 2 == 0;
             if (toolCall) {
@@ -86,8 +90,9 @@ class ChatPermissionFlowTest {
         props.setDefaultBaseUrl("http://127.0.0.1:" + llm.getAddress().getPort() + "/v1");
         tools = new ToolRegistry();
         workspaces = new WorkspaceStore(db);
+        ssh = new SshSessionManager(new HostStore(db), new KnownHostsStore(db));
         service = new ChatService(new SessionStore(db), new ModelProviderStore(db), props, tools,
-                new AuditStore(db), new HostStore(db), hub, grants, events, null,
+                new AuditStore(db), new HostStore(db), hub, grants, events, ssh,
                 new LocalAttachmentRegistry(), workspaces, new LocalCommandClassifier(),
                 new LocalPathAuthority(props), settings);
     }
@@ -99,6 +104,7 @@ class ChatPermissionFlowTest {
             await(() -> !events.isActive(SESSION));
         }
         if (llm != null) llm.stop(0);
+        if (ssh != null) ssh.disconnectAll();
         if (events != null) events.shutdown();
         if (db != null) db.close();
     }
@@ -208,6 +214,52 @@ class ChatPermissionFlowTest {
 
     private ChatRequest request(String mode) {
         return new ChatRequest(SESSION, "test approval", null, null, null, mode, null, null, false);
+    }
+
+    @Test
+    void deploymentContextIsVisibleImmediatelyAndRestoresWithoutClientFlags() throws Exception {
+        register("read_local_file", ToolCategory.READ);
+        var project = workspaces.create(Files.createDirectories(tmp.resolve("deploy-project")).toString(), "demo", "local", null);
+        var host = new HostStore(db).create(java.util.Map.of("name", "target", "address", "127.0.0.1", "username", "test"));
+        long hostId = ((Number) host.get("id")).longValue();
+        settings.setExecutionMode("readonly");
+        service.start(new ChatRequest(SESSION, "检查部署", null, null, hostId, null, null, project.id(), true));
+        var store = new SessionStore(db);
+        assertTrue(store.deploymentContext(SESSION).deploy(), "Metadata must exist before 202 is returned");
+        assertEquals(project.id(), workspaces.boundWorkspace(SESSION).id());
+        awaitFinished();
+
+        // Simulate reopening a task: omit project/host and even pass an old client's false flag.
+        service.start(new ChatRequest(SESSION, "继续检查", null, null, null, null, null, null, false));
+        await(() -> events.open(SESSION).events().stream().filter(e -> SessionEventType.TURN_END.equals(e.type())).count() == 2);
+        awaitFinished();
+        assertEquals(hostId, store.deploymentContext(SESSION).hostId());
+        assertTrue(modelRequest.get().contains("本任务固定目标服务器"));
+        assertTrue(modelRequest.get().contains(String.valueOf(host.get("hostKey"))));
+        var start = events.open(SESSION).events().stream().filter(e -> SessionEventType.TURN_START.equals(e.type())).reduce((a, b) -> b).orElseThrow();
+        assertEquals("readonly", start.data().path("mode").asText(), "Restoring deployment must not elevate permissions");
+    }
+
+    @Test
+    void deploymentRejectsChangedOrRemovedProjectBeforeCallingModel() throws Exception {
+        var a = workspaces.create(Files.createDirectories(tmp.resolve("fixed-a")).toString(), null, "local", null);
+        var b = workspaces.create(Files.createDirectories(tmp.resolve("fixed-b")).toString(), null, "local", null);
+        var sessions = new SessionStore(db);
+        sessions.createSession(SESSION, "existing deployment", 7L);
+        sessions.markDeployment(SESSION, 7L);
+        workspaces.bindSession(SESSION, a.id());
+        assertThrows(IllegalArgumentException.class, () -> service.start(new ChatRequest(SESSION, "继续", null, null, 8L, null, null, a.id(), true)));
+        assertThrows(IllegalArgumentException.class, () -> service.start(new ChatRequest(SESSION, "继续", null, null, 7L, null, null, b.id(), true)));
+        workspaces.delete(a.id());
+        assertThrows(IllegalArgumentException.class, () -> service.start(request(null)));
+        assertEquals(0, requests.get());
+    }
+
+    @Test
+    void invalidNewProjectDoesNotCreateEmptyHistory() {
+        assertThrows(IllegalArgumentException.class, () -> service.start(new ChatRequest(SESSION, "部署", null, null, null, null, null, 9999L, true)));
+        assertTrue(new SessionStore(db).listSessions().isEmpty());
+        assertEquals(0, requests.get());
     }
 
     private void register(String name, ToolCategory category) {

@@ -62,9 +62,8 @@ export default function HostSwitcher({ open, onClose }: { open: boolean; onClose
 
   const enterChat = useCallback((hostId: number) => {
     selectHost(hostId)
-    navigate('/chat')
     onClose()
-  }, [navigate, onClose, selectHost])
+  }, [onClose, selectHost])
 
   const pick = useCallback(async (host: Host) => {
     if (host.id == null || busyId != null) return

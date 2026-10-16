@@ -255,6 +255,7 @@ public final class ChatService {
             // 保证会话行存在（202 返回时侧栏立即可见）；事件日志 open 顺带完成冷恢复闭合
             String userText = buildUserText(req);
             sessionStore.createSession(sessionId, userText, req.hostId());
+            persistDeploymentContext(req, sessionId);
             SessionEventLog opened = eventManager.open(sessionId);
             int turnNo = nextTurnNo(opened);
 
@@ -341,6 +342,7 @@ public final class ChatService {
             // 保证会话存在（sessions 表：看板/侧栏投影），用户文本含注入的附件文本
             String userText = buildUserText(req);
             sessionStore.createSession(sessionId, userText, req.hostId());
+            persistDeploymentContext(req, sessionId);
 
             // ---- 事件溯源：打开日志（打开即冷恢复闭合）→ 新 turn ----
             // 事件日志是唯一事实源；LLM 历史由 surface 事件折叠，停止/断线/重启后续跑都靠它。
@@ -488,6 +490,13 @@ public final class ChatService {
             // 仅绑定项目不算部署模式——普通问答（看代码/改配置）不应被部署提示词污染。
             boolean deployMode = Boolean.TRUE.equals(req.deploy());
             String systemSupplement = deployMode ? DEPLOY_SUPPLEMENT : null;
+            if (deployMode && req.hostId() != null) {
+                var target = hostStore.findOne(req.hostId());
+                if (target == null) throw new IllegalArgumentException("目标服务器已移除，请新建部署");
+                systemSupplement += "\n本任务固定目标服务器：host_key=" + target.get("hostKey")
+                        + "，地址=" + target.get("address") + "。所有远程部署操作使用这个目标。"
+                        + "后续轮次依据已有阶段和执行结果继续，只处理用户本次要求；不要无故重新构建或再次发布。";
+            }
 
             // 中途插话供应器：AgentLoop 步边界 drain，多条指示合并成一段返回
             ConcurrentLinkedQueue<String> interjectionQueue = interjectionQueues.get(sessionId);
@@ -739,13 +748,44 @@ public final class ChatService {
 
     /** 在任务启动前解析并校验模式，避免缺省模式绕过用户保存的安全设置。 */
     private ChatRequest resolveRequest(ChatRequest req) {
+        if (req == null) throw new IllegalArgumentException("请求体不能为空");
         String mode = req.mode();
         if (mode == null || mode.isBlank()) mode = settingsStore.getExecutionMode();
         if (!java.util.Set.of("readonly", "write_confirm", "all_confirm").contains(mode)) {
             throw new IllegalArgumentException("无效的执行模式：" + mode);
         }
+        Long hostId = req.hostId();
+        Long workspaceId = req.workspaceId();
+        boolean deploy = Boolean.TRUE.equals(req.deploy());
+        if (req.sessionId() != null && !req.sessionId().isBlank()) {
+            var saved = sessionStore.deploymentContext(req.sessionId());
+            if (saved.deploy()) {
+                var bound = workspaceStore.boundWorkspace(req.sessionId());
+                if (bound == null) throw new IllegalArgumentException("该部署的项目已移除，请从项目首页新建部署");
+                if ((hostId != null && !java.util.Objects.equals(hostId, saved.hostId()))
+                        || (workspaceId != null && workspaceId.longValue() != bound.id())) {
+                    throw new IllegalArgumentException("已有部署的项目和目标服务器不能更换，请新建部署");
+                }
+                hostId = saved.hostId();
+                workspaceId = bound.id();
+                deploy = true;
+            }
+        }
+        if (workspaceId != null && workspaceStore.get(workspaceId) == null) {
+            throw new IllegalArgumentException("项目不存在，请重新选择项目");
+        }
+        if (deploy && hostId != null && hostStore.findOne(hostId) == null) {
+            throw new IllegalArgumentException("目标服务器不存在，请重新选择服务器");
+        }
         return new ChatRequest(req.sessionId(), req.message(), req.provider(), req.modelId(),
-                req.hostId(), mode, req.attachments(), req.workspaceId(), req.deploy());
+                hostId, mode, req.attachments(), workspaceId, deploy);
+    }
+
+    private void persistDeploymentContext(ChatRequest req, String sessionId) {
+        if (req.workspaceId() != null) workspaceStore.bindSession(sessionId, req.workspaceId());
+        if (Boolean.TRUE.equals(req.deploy()) && req.workspaceId() != null) {
+            sessionStore.markDeployment(sessionId, req.hostId());
+        }
     }
 
     private String workspaceScope(String sessionId) {

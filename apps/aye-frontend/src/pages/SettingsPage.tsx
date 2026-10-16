@@ -12,7 +12,7 @@ export default function SettingsPage() {
 
   const active: SettingsSection = isSettingsSection(section) ? section : 'general'
   const from = (location.state as { from?: string } | null)?.from
-  const closeTo = from && !from.startsWith('/settings') ? from : '/chat'
+  const closeTo = from && !from.startsWith('/settings') ? from : '/projects'
 
   return (
     <SettingsModal

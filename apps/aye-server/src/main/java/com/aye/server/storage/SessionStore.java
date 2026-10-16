@@ -58,16 +58,40 @@ public final class SessionStore {
     public List<Map<String, Object>> listSessions() {
         List<Map<String, Object>> out = new ArrayList<>();
         for (Map<String, Object> row : db.query(
-                "SELECT id, title, host_id, created_at, updated_at FROM sessions ORDER BY updated_at DESC")) {
+                """
+                SELECT s.*, w.id AS workspace_id, w.title AS workspace_title
+                FROM sessions s
+                LEFT JOIN session_workspaces sw ON sw.session_id = s.id
+                LEFT JOIN workspaces w ON w.id = sw.workspace_id
+                ORDER BY s.updated_at DESC
+                """)) {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", row.get("id"));
             m.put("title", row.get("title"));
             m.put("hostId", row.get("host_id"));
+            m.put("workspaceId", row.get("workspace_id"));
+            m.put("workspaceTitle", row.get("workspace_title"));
+            m.put("deploy", ((Number) row.get("deploy_mode")).intValue() != 0);
             m.put("createdAt", row.get("created_at"));
             m.put("updatedAt", row.get("updated_at"));
             out.add(m);
         }
         return out;
+    }
+
+    public record DeploymentContext(Long hostId, boolean deploy) {}
+
+    public DeploymentContext deploymentContext(String sessionId) {
+        var rows = db.query("SELECT host_id, deploy_mode FROM sessions WHERE id = ?", sessionId);
+        if (rows.isEmpty()) return new DeploymentContext(null, false);
+        var row = rows.get(0);
+        return new DeploymentContext(row.get("host_id") instanceof Number n ? n.longValue() : null,
+                ((Number) row.get("deploy_mode")).intValue() != 0);
+    }
+
+    /** 部署是任务属性，继续任务或重启不能把它降级成普通对话。 */
+    public void markDeployment(String sessionId, Long hostId) {
+        db.update("UPDATE sessions SET deploy_mode = 1, host_id = ? WHERE id = ?", hostId, sessionId);
     }
 
     /** 清空某会话的消息 */

@@ -372,8 +372,7 @@ public class AgentBeansConfig {
         registry.register(sftpEditTool);
         registry.register(sftpRenameTool);
         registry.register(remoteGrepTool);
-        registry.register(webSearchTool);  // 联网搜索高频使用
-        registry.register(webFetchTool);   // 抓网页正文
+        // 部署主线只使用项目和服务器证据；保留实现以兼容旧数据，不注册联网工具。
         registry.register(todoWriteTool);  // 多步任务进度
         registry.register(localFileReadTool); // READ：附件路径经白名单约束
         // 小白一键部署工具族（本机/远程执行工具经分级与后端构造命令）

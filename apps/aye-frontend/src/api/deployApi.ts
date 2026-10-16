@@ -6,6 +6,13 @@
 
 import request from '@/api/request'
 
+export interface DefaultDeployModel { providerId: string; modelId: string }
+
+export async function getDefaultDeployModel(): Promise<DefaultDeployModel | null> {
+  const data = await request.get('/models/default') as { default: DefaultDeployModel | null }
+  return data.default
+}
+
 export interface Workspace {
   id: number
   canonical_path: string

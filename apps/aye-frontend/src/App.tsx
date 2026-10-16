@@ -5,20 +5,19 @@ import ConversationPage from '@/pages/ConversationPage'
 import SettingsPage from '@/pages/SettingsPage'
 import LogsPage from '@/pages/LogsPage'
 import TracePage from '@/pages/TracePage'
+import ProjectsPage from '@/pages/ProjectsPage'
 
 /**
- * 三区信息架构：
- *   - /chat/:sessionId?   生产区：AI 对话 + 终端/文件（默认首页）
- *   - /observability/*    回看区：操作日志 / Agent 追踪
- *   - /settings/:section? 设置居中弹框：通用 / 模型 / 主机 / 关于
- * 旧路径 /servers /logs /traces 全部 301 到新位置。
+ * 项目首页 → 部署任务；诊断与设置作为辅助入口。旧路径保留客户端重定向。
  */
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<AppLayout />}>
-        <Route index element={<Navigate to="/chat" replace />} />
-        <Route path="chat/:sessionId?" element={<ConversationPage />} />
+        <Route index element={<Navigate to="/projects" replace />} />
+        <Route path="projects" element={<ProjectsPage />} />
+        <Route path="chat" element={<Navigate to="/projects" replace />} />
+        <Route path="chat/:sessionId" element={<ConversationPage />} />
 
         <Route path="observability" element={<ObservLayout />}>
           <Route index element={<Navigate to="logs" replace />} />
@@ -34,7 +33,7 @@ export default function App() {
         <Route path="logs" element={<Navigate to="/observability/logs" replace />} />
         <Route path="traces" element={<Navigate to="/observability/traces" replace />} />
 
-        <Route path="*" element={<Navigate to="/chat" replace />} />
+        <Route path="*" element={<Navigate to="/projects" replace />} />
       </Route>
     </Routes>
   )

@@ -5,6 +5,9 @@ export interface SessionInfo {
   id: string
   title: string
   hostId?: number | null
+  workspaceId?: number | null
+  workspaceTitle?: string | null
+  deploy?: boolean
   createdAt: number
   updatedAt: number
   /** 当前运行中的 turn 序号（session_turns 投影，附加可空字段；冷恢复闭合后消失）。 */

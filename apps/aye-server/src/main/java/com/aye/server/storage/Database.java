@@ -52,7 +52,8 @@ public final class Database {
                     )""");
             ensureColumns(st, "sessions", Map.of(
                     "title", "TEXT",
-                    "host_id", "INTEGER"));
+                    "host_id", "INTEGER",
+                    "deploy_mode", "INTEGER NOT NULL DEFAULT 0"));
 
             st.execute("""
                     CREATE TABLE IF NOT EXISTS messages (
@@ -342,6 +343,17 @@ public final class Database {
                         workspace_id INTEGER NOT NULL,
                         updated_at INTEGER NOT NULL
                     )""");
+            // 旧版已产生部署流水线且仍绑定同一项目的会话，升级后继续按部署任务恢复。
+            // 不重新绑定用户已解绑的项目，也不把普通项目问答改成部署。
+            st.execute("""
+                    UPDATE sessions SET deploy_mode = 1
+                    WHERE deploy_mode = 0 AND EXISTS (
+                        SELECT 1 FROM deploy_runs d
+                        JOIN session_workspaces sw ON sw.session_id = d.session_id
+                            AND sw.workspace_id = d.workspace_id
+                        WHERE d.session_id = sessions.id
+                    )
+                    """);
         }
     }
 
