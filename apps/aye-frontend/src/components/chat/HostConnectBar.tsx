@@ -14,7 +14,7 @@ import { useHostStore } from '@/store/useHostStore'
 import { connectHost } from '@/lib/sshConnect'
 
 // 无 props，状态全部来自 host store：memo 后父页面流式重渲染完全不会波及本组件。
-export const HostConnectBar = memo(function HostConnectBar({ showPrivateKey = false }: { showPrivateKey?: boolean }) {
+export const HostConnectBar = memo(function HostConnectBar({ showPrivateKey = false, compact = false }: { showPrivateKey?: boolean; compact?: boolean }) {
   const navigate = useNavigate()
   const hosts = useHostStore((s) => s.hosts)
   const currentHostId = useHostStore((s) => s.currentHostId)
@@ -69,11 +69,11 @@ export const HostConnectBar = memo(function HostConnectBar({ showPrivateKey = fa
   }
 
   return (
-    <div className="conv-hostbar" data-open={open || undefined}>
+    <div className={`conv-hostbar${compact ? ' project-connection' : ''}`} data-open={open || undefined}>
       <div className="conv-hostbarRow">
         <span className="conv-hostbarIcon"><TriangleAlert /></span>
         <span className="conv-hostbarText">
-          当前主机「{host.name}」未连接，AI 将无法执行远程操作
+          {compact ? (connecting ? '正在连接服务器…' : '尚未连接服务器') : `当前主机「${host.name}」未连接，AI 将无法执行远程操作`}
         </span>
         <button
           type="button"
@@ -85,6 +85,7 @@ export const HostConnectBar = memo(function HostConnectBar({ showPrivateKey = fa
           {connecting ? '连接中…' : '连接'}
         </button>
       </div>
+      {!open && serverState?.status === 'error' && serverState.error && <div role="alert" className="conv-hostbarError">{serverState.error}</div>}
       {open && needPassword && (
         <div className="conv-hostbarForm">
           <input

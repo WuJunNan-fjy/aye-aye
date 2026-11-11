@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { FolderOpen, History, PanelLeftClose, PanelLeftOpen, Plus, Rocket, Settings, X } from 'lucide-react'
+import { FolderOpen, History, LayoutGrid, PanelLeftClose, PanelLeftOpen, Rocket, Settings, X } from 'lucide-react'
 import { Modal, message } from 'antd'
 import { listWorkspaces, type Workspace } from '@/api/deployApi'
 import type { SessionInfo } from '@/api/sessionsApi'
@@ -68,21 +68,30 @@ export default function AppSidebar() {
     </div>
   }
   const legacy = sessions.filter(s => s.workspaceId == null)
+  const recentRecords = (projectId: number) => {
+    const records = sessions.filter(s => s.workspaceId === projectId)
+    const recent = records.slice(0, 5)
+    const current = records.find(s => s.id === sessionId)
+    return current && !recent.some(s => s.id === current.id) ? [...recent.slice(0, 4), current] : recent
+  }
+  const selectedProject = location.pathname === '/projects' ? Number(new URLSearchParams(location.search).get('project')) : sessions.find(s => s.id === sessionId)?.workspaceId
 
-  return <aside className={`app-sidebar project-sidebar${collapsed ? ' is-collapsed' : ''}`} style={{ width: collapsed ? 64 : 244 }}>
+  return <aside className={`app-sidebar project-sidebar${collapsed ? ' is-collapsed' : ''}`} style={{ width: collapsed ? 64 : 220 }}>
     <div className="project-brand"><button type="button" title="项目首页" onClick={() => navigate('/projects')}><Rocket size={22} />{!collapsed && <strong>Aye</strong>}</button>
       {!collapsed && <button type="button" aria-label="收起侧栏" onClick={() => setCollapsed(true)}><PanelLeftClose size={17} /></button>}
     </div>
     {collapsed && <button className="project-nav-link" type="button" aria-label="展开侧栏" onClick={() => setCollapsed(false)}><PanelLeftOpen size={18} /></button>}
-    <button className="project-nav-link project-nav-primary" type="button" title="新建部署" onClick={() => navigate('/projects')}><Plus size={18} />{!collapsed && '新建部署'}</button>
+    <button className={`project-nav-link${location.pathname === '/projects' && !selectedProject ? ' project-nav-primary' : ''}`} aria-current={location.pathname === '/projects' && !selectedProject ? 'page' : undefined} type="button" title="项目总览" onClick={() => navigate('/projects')}><LayoutGrid size={18} />{!collapsed && '项目总览'}</button>
     {!collapsed && <div className="project-navigation">
-      <div className="project-nav-label">项目与部署</div>
+      <div className="project-nav-label">我的项目 <span>{projects.length}</span></div>
       {projectError && <button className="project-text-button" type="button" onClick={refreshProjects}>{projectError} · 重试</button>}
-      {projects.map(project => <details key={project.id} className="project-nav-group" open>
-        <summary><FolderOpen size={16} /><span>{project.title}</span></summary>
-        <button className="project-nav-detail" type="button" onClick={() => navigate(`/projects?project=${project.id}`)}>项目概览</button>
-        {sessions.filter(s => s.workspaceId === project.id).map(recordRow)}
-      </details>)}
+      {projects.map(project => <div key={project.id} className="project-nav-group">
+        <button type="button" className={`project-nav-link${selectedProject === project.id ? ' active' : ''}`} aria-current={selectedProject === project.id ? 'page' : undefined} title={project.title} onClick={() => navigate(`/projects?project=${project.id}`)}><FolderOpen size={16} /><span>{project.title}</span></button>
+        {selectedProject === project.id && <div className="project-nav-recent">
+          {recentRecords(project.id).map(recordRow)}
+          {sessions.filter(s => s.workspaceId === project.id).length > 5 && <button type="button" className="project-more-records" onClick={() => navigate(`/projects?project=${project.id}`)}>查看全部记录</button>}
+        </div>}
+      </div>)}
       {!projects.length && !projectError && <p className="project-muted">添加项目，开始第一次部署。</p>}
       {legacy.length > 0 && <details className="project-nav-group" open={legacy.some(s => s.id === sessionId) || undefined}>
         <summary><History size={16} /><span>历史记录</span></summary>{legacy.map(recordRow)}
